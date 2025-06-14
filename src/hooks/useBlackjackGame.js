@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
-// --- Card Data (moved from App.js) ---
+// --- Card Data ---
 const SUITS = ['♠', '♥', '♦', '♣'];
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 const VALUES = {
@@ -31,6 +31,14 @@ export const useBlackjackGame = () => {
     correctMoves: 0, incorrectMoves: 0, totalDecisions: 0,
     wins: 0, losses: 0, pushes: 0, handsPlayed: 0
   });
+
+  const resetSessionStats = useCallback(() => {
+    setSessionStats({
+        correctMoves: 0, incorrectMoves: 0, totalDecisions: 0,
+        wins: 0, losses: 0, pushes: 0, handsPlayed: 0
+    });
+    setMessage("Session stats reset. Click 'New Game'.");
+  }, [setSessionStats, setMessage]);
 
   // Forward declaration for use in getOptimalPlay
   let getOptimalPlayRef = React.useRef(null);
@@ -103,7 +111,7 @@ export const useBlackjackGame = () => {
     }
     const card = deckToDealFrom.pop();
     return { card, updatedDeck: deckToDealFrom };
-  }, [createNewDeck, shuffleDeck]);
+  }, [createNewDeck, shuffleDeck, setMessage]);
 
 
   const logRoundToHistory = useCallback((resolvedPlayerHands, finalDealerHand, finalDealerActionsLog, dealerBlackjack, playerBlackjackOnInit) => {
@@ -181,7 +189,7 @@ export const useBlackjackGame = () => {
         });
         return { ...prevStats, wins: newWins, losses: newLosses, pushes: newPushes, handsPlayed: prevStats.handsPlayed + updatedPlayerHands.length };
     });
-  }, [dealerHand, playerHands, calculateHandValue, currentRoundDealerActionsLog, logRoundToHistory]);
+  }, [dealerHand, playerHands, calculateHandValue, currentRoundDealerActionsLog, logRoundToHistory, setMessage, setPlayerHands, setGameActive, setSessionStats]);
 
   const newGameHandler = useCallback(() => {
     setMessage("Setting up new game...");
@@ -189,7 +197,9 @@ export const useBlackjackGame = () => {
 
     const dealOne = (deck) => {
         if (!deck || deck.length === 0) {
-            return dealOneCard(shuffleDeck(createNewDeck())); // Use the main dealOneCard
+            // This case should ideally not be hit if dealOneCard handles reshuffling
+            console.warn("newGameHandler: Dealing from an empty or null deck, attempting recovery.");
+            return dealOneCard(shuffleDeck(createNewDeck()));
         }
         return dealOneCard(deck);
     };
@@ -197,10 +207,11 @@ export const useBlackjackGame = () => {
     let card1, card2, card3, card4;
     let deckAfterDeal = currentDeck;
 
-    ({ card: card1, deckAfterDeal } = dealOne(deckAfterDeal));
-    ({ card: card2, deckAfterDeal } = dealOne(deckAfterDeal));
-    ({ card: card3, deckAfterDeal } = dealOne(deckAfterDeal));
-    ({ card: card4, deckAfterDeal } = dealOne(deckAfterDeal));
+    ({ card: card1, updatedDeck: deckAfterDeal } = dealOne(deckAfterDeal));
+    ({ card: card2, updatedDeck: deckAfterDeal } = dealOne(deckAfterDeal));
+    ({ card: card3, updatedDeck: deckAfterDeal } = dealOne(deckAfterDeal));
+    ({ card: card4, updatedDeck: deckAfterDeal } = dealOne(deckAfterDeal));
+
 
     const playerCards = [card1, card3].filter(Boolean);
     const dealerCards = [card2, card4].filter(Boolean);
@@ -216,7 +227,6 @@ export const useBlackjackGame = () => {
     setPlayerHands([initialPlayerHand]);
     setDealerHand(dealerCards);
     setCurrentHandIndex(0);
-    // setGameActive(true); // Will be set after BJ check or at start of player turn
     setHideDealerFirstCard(true);
     setCanSurrenderGlobal(true);
     setCurrentRoundDealerActionsLog([]);
@@ -230,22 +240,34 @@ export const useBlackjackGame = () => {
         setGameActive(false); // Game ends immediately
         setPlayerHands(prev => [{ ...prev[0], isBlackjack: playerHasBlackjack, stood: true }]);
         setHideDealerFirstCard(false);
+        let outcomeMessage = "";
         if (playerHasBlackjack && dealerHasBlackjack) {
-            setMessage("Push! Both have Blackjack.");
+            outcomeMessage = "Push! Both have Blackjack.";
             setPlayerHands(prev => [{ ...prev[0], outcome: "Push" }]);
         } else if (playerHasBlackjack) {
-            setMessage("Blackjack! You win!");
+            outcomeMessage = "Blackjack! You win!";
             setPlayerHands(prev => [{ ...prev[0], outcome: "Win" }]);
         } else { // Dealer Blackjack
-            setMessage("Dealer Blackjack! You lose.");
+            outcomeMessage = "Dealer Blackjack! You lose.";
             setPlayerHands(prev => [{ ...prev[0], outcome: "Loss" }]);
         }
-        determineGameOutcome(true, playerHasBlackjack); // Pass flags for initial blackjacks
+        setMessage(outcomeMessage); // Set message before determineGameOutcome
+        // determineGameOutcome will use the playerHands state set just above
+        // Need to ensure determineGameOutcome uses the latest playerHands state.
+        // Calling determineGameOutcome inside a setPlayerHands updater or useEffect might be more robust.
+        // For now, assuming the state updates apply before determineGameOutcome reads them.
+        // This is a common React pitfall. Let's pass the updated hands directly.
+        // logRoundToHistory needs the final state.
+        // Since determineGameOutcome calls logRoundToHistory, and also sets playerHands,
+        // it's better to let determineGameOutcome handle the final playerHands state.
+        // The setPlayerHands calls above are for immediate UI feedback and setting flags.
+        // determineGameOutcome will then consolidate and log.
+        determineGameOutcome(true, playerHasBlackjack);
     } else {
         setGameActive(true); // Game is active for player's turn
         setMessage("Your turn. What's your move?");
     }
-  }, [createNewDeck, shuffleDeck, dealOneCard, calculateHandValue, determineGameOutcome]);
+  }, [createNewDeck, shuffleDeck, dealOneCard, calculateHandValue, determineGameOutcome, setMessage, setDeck, setPlayerHands, setDealerHand, setCurrentHandIndex, setHideDealerFirstCard, setCanSurrenderGlobal, setCurrentRoundDealerActionsLog, setGameActive]);
 
   // --- Strategy and Mistake Checking ---
   const getStrategyKeysForHighlight = useCallback((playerHandObj, dealerCards, isDealerCardHidden) => {
@@ -288,10 +310,10 @@ export const useBlackjackGame = () => {
         type = 'hard';
         if (playerValue >= 17) playerKey = '17+';
         else if (playerValue <= 7 && playerValue >= 5) playerKey = '5-7';
-        else if (playerValue < 5) playerKey = '5-7';
+        else if (playerValue < 5) playerKey = '5-7'; // Or handle as specific numbers if strategy chart does
         else playerKey = playerValue.toString();
         if (!['17+', '16', '15', '14', '13', '12', '11', '10', '9', '8', '5-7'].includes(playerKey)) {
-           playerKey = null;
+           playerKey = null; // Or map to a category if needed
         }
       }
     }
@@ -301,8 +323,8 @@ export const useBlackjackGame = () => {
   const getOptimalPlay = useCallback((playerHandCards, dealerUpCard, canSplit, canDouble, canSurrenderNow) => {
     const playerValue = calculateHandValue(playerHandCards);
     const dealerCardRank = dealerUpCard.rank;
-    const dealerIsAce = dealerCardRank === 'A';
-    const dealerIsTen = ['10', 'J', 'Q', 'K'].includes(dealerCardRank);
+    // const dealerIsAce = dealerCardRank === 'A'; // Unused
+    // const dealerIsTen = ['10', 'J', 'Q', 'K'].includes(dealerCardRank); // Unused
 
     const isPlayerPair = playerHandCards.length === 2 && playerHandCards[0].rank === playerHandCards[1].rank;
     let isPlayerSoft = false;
@@ -312,33 +334,40 @@ export const useBlackjackGame = () => {
         playerHandCards.forEach(c => {
             if (c.rank === 'A') aceCount++; else nonAceTotal += VALUES[c.rank];
         });
-        if (aceCount > 0 && nonAceTotal + 11 + (aceCount - 1) === playerValue && playerValue <= 21) {
+        // A hand is soft if an Ace is counted as 11 and the total is <= 21.
+        if (aceCount > 0 && (nonAceTotal + 11 + (aceCount - 1)) === playerValue && playerValue <= 21) {
             isPlayerSoft = true;
         }
     }
 
-    // Basic Strategy (H17, DAS - Dealer Stands on Soft 17, Double After Split allowed)
-    // This is a simplified version. A full strategy chart is more complex.
-    // Refer to `strategyData.js` for the actual chart data.
-    // This function should ideally use the chart data. For now, a direct logic:
+    // --- Basic Strategy Logic (using strategyData.js would be more robust) ---
+    // This is a placeholder for a more detailed strategy lookup.
+    // The getStrategyKeysForHighlight function generates keys for such a lookup.
+    // For now, using the simplified direct logic:
 
-    if (canSurrenderNow && playerHandCards.length === 2 && !isPlayerPair) {
-        if (playerValue === 16 && (dealerCardRank === '9' || dealerIsTen || dealerIsAce)) return 'R';
-        if (playerValue === 15 && (dealerIsTen || dealerIsAce)) return 'R';
+    // Surrender (Late Surrender, if allowed)
+    if (canSurrenderNow && playerHandCards.length === 2 && !isPlayerPair) { // Surrender only on first two cards, not after split
+        if (playerValue === 16 && (dealerCardRank === '9' || ['10', 'J', 'Q', 'K'].includes(dealerCardRank) || dealerCardRank === 'A')) return 'R';
+        if (playerValue === 15 && (['10', 'J', 'Q', 'K'].includes(dealerCardRank) || dealerCardRank === 'A')) return 'R';
+        // Add more surrender rules if applicable (e.g., 15 vs A if H17)
     }
 
+    // Pair Splitting
     if (isPlayerPair && canSplit) {
         const pRank = playerHandCards[0].rank;
         if (pRank === 'A' || pRank === '8') return 'P';
-        if (pRank === '10' || pRank === 'J' || pRank === 'Q' || pRank === 'K') return 'S';
+        if (['10', 'J', 'Q', 'K'].includes(pRank)) return 'S'; // Never split 10s
         if (pRank === '9') {
             if (['7', '10', 'J', 'Q', 'K', 'A'].includes(dealerCardRank)) return 'S';
             return 'P';
         }
         if (pRank === '7') return (VALUES[dealerCardRank] >= 2 && VALUES[dealerCardRank] <= 7) ? 'P' : 'H';
         if (pRank === '6') return (VALUES[dealerCardRank] >= 2 && VALUES[dealerCardRank] <= 6) ? 'P' : 'H';
-        if (pRank === '5') return (canDouble && VALUES[dealerCardRank] >= 2 && VALUES[dealerCardRank] <= 9) ? 'D' : 'H';
-        if (pRank === '4') {
+        if (pRank === '5') { // Never split 5s, treat as hard 10
+             if (canDouble && VALUES[dealerCardRank] >= 2 && VALUES[dealerCardRank] <= 9) return 'D';
+             return 'H';
+        }
+        if (pRank === '4') { // Split 4s vs 5,6 if Double After Split (DAS) is allowed
             if (GAME_RULES.DOUBLE_AFTER_SPLIT_ALLOWED && (VALUES[dealerCardRank] === 5 || VALUES[dealerCardRank] === 6)) return 'P';
             return 'H';
         }
@@ -348,29 +377,34 @@ export const useBlackjackGame = () => {
         }
     }
 
+    // Soft Totals
     if (isPlayerSoft) {
-        // const otherCardValue = playerValue - 11; // Value of non-Ace cards or Aces as 1 // This was unused
-        if (playerValue >= 20) return 'S'; // A,9 or A,8+other
+        if (playerValue >= 20) return 'S'; // A,9 (20) or A,8 (19) - A,8 logic below
         if (playerValue === 19) { // A,8
              return (canDouble && VALUES[dealerCardRank] === 6 && GAME_RULES.DEALER_STANDS_ON_SOFT_17) ? 'D' : 'S';
         }
         if (playerValue === 18) { // A,7
             if (canDouble && VALUES[dealerCardRank] >= 2 && VALUES[dealerCardRank] <= 6) return 'D';
-            if (VALUES[dealerCardRank] <= 8) return 'S';
-            return 'H';
+            if (VALUES[dealerCardRank] <= 8) return 'S'; // Stand vs 2-8
+            return 'H'; // Hit vs 9, T, A
         }
         if (playerValue === 17) { // A,6
             if (canDouble && VALUES[dealerCardRank] >= 3 && VALUES[dealerCardRank] <= 6) return 'D';
             return 'H';
         }
-        if (playerValue <= 16) { // A,5 down to A,2
-            if (canDouble && VALUES[dealerCardRank] >= 4 && VALUES[dealerCardRank] <= 6 && (playerValue === 15 || playerValue === 16)) return 'D';
-            if (canDouble && VALUES[dealerCardRank] >= 5 && VALUES[dealerCardRank] <= 6 && (playerValue === 13 || playerValue === 14)) return 'D';
+        // A,5 (16) ; A,4 (15)
+        if (playerValue === 16 || playerValue === 15) {
+            if (canDouble && VALUES[dealerCardRank] >= 4 && VALUES[dealerCardRank] <= 6) return 'D';
+            return 'H';
+        }
+        // A,3 (14) ; A,2 (13)
+        if (playerValue === 14 || playerValue === 13) {
+            if (canDouble && VALUES[dealerCardRank] >= 5 && VALUES[dealerCardRank] <= 6) return 'D';
             return 'H';
         }
     }
 
-    // Hard Totals
+    // Hard Totals (and non-splittable 5,5)
     if (playerValue >= 17) return 'S';
     if (playerValue === 16 || playerValue === 15 || playerValue === 14 || playerValue === 13) {
         return (VALUES[dealerCardRank] >= 2 && VALUES[dealerCardRank] <= 6) ? 'S' : 'H';
@@ -379,87 +413,96 @@ export const useBlackjackGame = () => {
     if (playerValue === 11) return canDouble ? 'D' : 'H';
     if (playerValue === 10) return (canDouble && VALUES[dealerCardRank] >= 2 && VALUES[dealerCardRank] <= 9) ? 'D' : 'H';
     if (playerValue === 9) return (canDouble && VALUES[dealerCardRank] >= 3 && VALUES[dealerCardRank] <= 6) ? 'D' : 'H';
-    return 'H'; // 8 or less
+    return 'H'; // 8 or less // GAME_RULES removed as it's a constant
   }, [calculateHandValue]);
 
   getOptimalPlayRef.current = getOptimalPlay;
 
   // Define these before logPlayerAction and action handlers
   const currentPlayerHand = playerHands.length > 0 && currentHandIndex < playerHands.length ? playerHands[currentHandIndex] : null;
-  const playerCanHit = gameActive && currentPlayerHand && !currentPlayerHand.busted && !currentPlayerHand.stood && !currentPlayerHand.surrendered;
+  const playerCanHit = gameActive && currentPlayerHand && !currentPlayerHand.busted && !currentPlayerHand.stood && !currentPlayerHand.surrendered && calculateHandValue(currentPlayerHand.cards) < 21;
   const playerCanStand = gameActive && currentPlayerHand && !currentPlayerHand.busted && !currentPlayerHand.stood && !currentPlayerHand.surrendered;
-  const playerCanDouble = gameActive && currentPlayerHand && currentPlayerHand.cards.length === 2 && !currentPlayerHand.busted && !currentPlayerHand.stood && !currentPlayerHand.surrendered && !currentPlayerHand.splitFromPair;
+  const playerCanDouble = gameActive && currentPlayerHand && currentPlayerHand.cards.length === 2 && !currentPlayerHand.busted && !currentPlayerHand.stood && !currentPlayerHand.surrendered &&
+                          (!currentPlayerHand.splitFromPair || GAME_RULES.DOUBLE_AFTER_SPLIT_ALLOWED);
   const playerCanSplit = gameActive && currentPlayerHand && currentPlayerHand.cards.length === 2 && currentPlayerHand.cards[0]?.rank === currentPlayerHand.cards[1]?.rank && playerHands.length < GAME_RULES.MAX_SPLIT_HANDS && !currentPlayerHand.busted && !currentPlayerHand.stood && !currentPlayerHand.surrendered;
   const playerCanSurrender = gameActive && currentPlayerHand && canSurrenderGlobal && currentPlayerHand.cards.length === 2 && !currentPlayerHand.splitFromPair && !currentPlayerHand.busted && !currentPlayerHand.stood && !currentPlayerHand.surrendered;
-
-  // Moved up: dealerPlayLogic (used by advanceToNextHandOrDealerTurn)
-  const dealerPlayLogic = useCallback(() => {
-    setHideDealerFirstCard(false);
-    setMessage("Dealer's turn...");
-    let localDealerHand = [...dealerHand];
-    let localDeck = [...deck];
-    let localDealerActionsLog = [];
-
-    // Log initial reveal if not Blackjack
-    if (calculateHandValue(localDealerHand) !== 21 || localDealerHand.length > 2) {
-         localDealerActionsLog.push({ action: 'Reveal', handValueBefore: calculateHandValue(localDealerHand), handValueAfter: calculateHandValue(localDealerHand) });
-    }
-
-    function performDealerHit() {
-        let currentDealerValue = calculateHandValue(localDealerHand);
-        if (currentDealerValue < 17 || (currentDealerValue === 17 && localDealerHand.some(c => c.rank === 'A') && !GAME_RULES.DEALER_STANDS_ON_SOFT_17 && calculateHandValue(localDealerHand.map(c => c.rank === 'A' ? {...c, value: 1} : c)) + 10 === currentDealerValue )) {
-            const { card, updatedDeck } = dealOneCard(localDeck);
-            localDeck = updatedDeck;
-            // const handBeforeHit = [...localDealerHand]; // This was unused
-            localDealerHand.push(card);
-            const valueAfterHit = calculateHandValue(localDealerHand);
-            localDealerActionsLog.push({ action: 'H', handValueBefore: currentDealerValue, handValueAfter: valueAfterHit, cardDealt: card });
-            setDealerHand([...localDealerHand]); // Update UI
-            setDeck(localDeck);
-
-            if (valueAfterHit > 21) {
-                localDealerActionsLog.push({ action: 'Bust', handValueBefore: valueAfterHit, handValueAfter: valueAfterHit });
-                finalizeDealerTurn();
-            } else {
-                setTimeout(performDealerHit, 1000); // Next hit
-            }
-        } else {
-            localDealerActionsLog.push({ action: 'S', handValueBefore: currentDealerValue, handValueAfter: currentDealerValue });
-            finalizeDealerTurn();
-        }
-    }
-
-    function finalizeDealerTurn() {
-        setCurrentRoundDealerActionsLog(localDealerActionsLog);
-        setDealerHand(localDealerHand); // Final update
-        determineGameOutcome(false, false); // Not initial blackjacks
-    }
-
-    setTimeout(performDealerHit, 1000); // Start dealer's play
-  }, [dealerHand, deck, dealOneCard, calculateHandValue, determineGameOutcome]);
 
 
   const logPlayerAction = useCallback((playerActionCode, cardDealt = null) => {
     setPlayerHands(prevPlayerHands => {
-        const currentHand = prevPlayerHands[currentHandIndex];
-        if (!currentHand || !dealerHand[0]) return prevPlayerHands;
+        const handFromStateBeforeThisLogUpdate = prevPlayerHands[currentHandIndex];
+        if (!handFromStateBeforeThisLogUpdate || !dealerHand || dealerHand.length === 0) {
+            console.error("logPlayerAction: Missing current hand or dealer hand in state.");
+            return prevPlayerHands;
+        }
 
-        const handCardsForDecision = cardDealt ? currentHand.cards.slice(0, -1) : [...currentHand.cards];
-        const handValueBefore = calculateHandValue(handCardsForDecision);
-        const handValueAfter = calculateHandValue(currentHand.cards);
+        let handCardsForDecisionMaking;
+        let valueBeforeAction;
+        let valueAfterAction;
 
-        const dealerUpCard = dealerHand[1] || dealerHand[0]; // dealerHand[1] is upcard if not hidden
+        if ((playerActionCode === 'H' || playerActionCode === 'D') && cardDealt) {
+            // For H/D, logPlayerAction is called *after* the card is added to the hand object in the calling handler,
+            // but *before* this setPlayerHands updater runs with that new hand object.
+            // So, handFromStateBeforeThisLogUpdate.cards *already includes* cardDealt.
+            if (handFromStateBeforeThisLogUpdate.cards.length === 0) {
+                console.error("logPlayerAction: handFromStateBeforeThisLogUpdate.cards is empty for H/D. This should not happen.");
+                handCardsForDecisionMaking = []; // Fallback
+            } else {
+                // The decision was made *before* cardDealt was known or added.
+                handCardsForDecisionMaking = handFromStateBeforeThisLogUpdate.cards.filter(c => c.id !== cardDealt.id);
+                // If cardDealt might not be unique by id, or if multiple identical cards exist:
+                // A more robust way if cardDealt is guaranteed to be the last one conceptually:
+                // handCardsForDecisionMaking = handFromStateBeforeThisLogUpdate.cards.slice(0, -1);
+                // This assumes the cardDealt was indeed the one that would be removed by slice.
+                // The filter approach is safer if cardDealt is a specific object.
+            }
+            valueBeforeAction = calculateHandValue(handCardsForDecisionMaking);
+            valueAfterAction = calculateHandValue(handFromStateBeforeThisLogUpdate.cards);
+        } else { // For S, R, P, logPlayerAction is called *before* the primary state change related to the action.
+                 // The handFromStateBeforeThisLogUpdate.cards represents the hand at decision time.
+            handCardsForDecisionMaking = [...handFromStateBeforeThisLogUpdate.cards];
+            valueBeforeAction = calculateHandValue(handCardsForDecisionMaking);
+            valueAfterAction = valueBeforeAction; // No card dealt by these actions to change value *within this log step*.
+        }
+
+        // Safety check
+        if (handCardsForDecisionMaking.length === 0 && handFromStateBeforeThisLogUpdate.cards.length > 0 && (playerActionCode === 'H' || playerActionCode === 'D')) {
+            console.warn(`logPlayerAction: handCardsForDecisionMaking became empty for ${playerActionCode}. Original cards: ${handFromStateBeforeThisLogUpdate.cards.map(c=>c.rank)}. Card dealt: ${cardDealt?.rank}. Using current hand state for decision.`);
+            handCardsForDecisionMaking = [...handFromStateBeforeThisLogUpdate.cards];
+            valueBeforeAction = calculateHandValue(handCardsForDecisionMaking); // Recalculate
+        }
+
+        const dealerUpCardToUse = hideDealerFirstCard ? dealerHand[1] : dealerHand[0];
+        if (!dealerUpCardToUse) {
+            console.error("logPlayerAction (updater): Dealer up-card not available for optimal play.");
+            return prevPlayerHands;
+        }
+
+        // Determine capabilities based on the hand state *at the point of decision*
+        const canSplitForDecision = gameActive &&
+            handCardsForDecisionMaking.length === 2 &&
+            handCardsForDecisionMaking[0]?.rank === handCardsForDecisionMaking[1]?.rank &&
+            prevPlayerHands.length < GAME_RULES.MAX_SPLIT_HANDS;
+
+        const isDoubleEligibleForDecision = gameActive &&
+            handCardsForDecisionMaking.length === 2 &&
+            (!handFromStateBeforeThisLogUpdate.splitFromPair || GAME_RULES.DOUBLE_AFTER_SPLIT_ALLOWED);
+
+        const canSurrenderForDecision = gameActive && canSurrenderGlobal &&
+            handCardsForDecisionMaking.length === 2 &&
+            !handFromStateBeforeThisLogUpdate.splitFromPair; // Original canSurrenderGlobal is for the current hand state
 
         const optimalAction = getOptimalPlayRef.current(
-            handCardsForDecision,
-            dealerUpCard,
-            playerCanSplit, // These should reflect capabilities *before* the action
-            playerCanDouble,
-            canSurrenderGlobal && currentHand.cards.length === 2 && !currentHand.splitFromPair
+            handCardsForDecisionMaking,
+            dealerUpCardToUse,
+            canSplitForDecision,
+            isDoubleEligibleForDecision,
+            canSurrenderForDecision
         );
 
         const wasCorrect = playerActionCode === optimalAction;
 
+        // Update message and session stats from within this updater
         if (wasCorrect) {
             setMessage(`Correct: ${playerActionCode}`);
         } else {
@@ -474,139 +517,275 @@ export const useBlackjackGame = () => {
         }));
 
         const updatedHand = {
-            ...currentHand,
+            ...handFromStateBeforeThisLogUpdate,
             actionsTakenLog: [
-                ...currentHand.actionsTakenLog,
-                { playerAction: playerActionCode, optimalAction, wasCorrect, handValueBefore, handValueAfter, cardDealt }
+                ...(handFromStateBeforeThisLogUpdate.actionsTakenLog || []),
+                { playerAction: playerActionCode, optimalAction, wasCorrect, handValueBefore: valueBeforeAction, handValueAfter: valueAfterAction, cardDealt }
             ]
         };
         const newPlayerHands = [...prevPlayerHands];
         newPlayerHands[currentHandIndex] = updatedHand;
         return newPlayerHands;
     });
-    setCanSurrenderGlobal(false);
-  }, [currentHandIndex, dealerHand, playerCanSplit, playerCanDouble, canSurrenderGlobal, calculateHandValue]);
+    setCanSurrenderGlobal(false); // Surrender is only for the first action on a hand
+  }, [currentHandIndex, dealerHand, hideDealerFirstCard, calculateHandValue, getOptimalPlayRef, gameActive, canSurrenderGlobal, setMessage, setSessionStats, setPlayerHands]);
 
 
-  const advanceToNextHandOrDealerTurn = useCallback(() => {
-    let nextIndex = -1;
-    for (let i = currentHandIndex + 1; i < playerHands.length; i++) {
-        if (!playerHands[i].stood && !playerHands[i].busted && !playerHands[i].surrendered) {
-            nextIndex = i;
-            break;
+  // Moved up: dealerPlayLogic (used by advanceToNextHandOrDealerTurn)
+  const dealerPlayLogic = useCallback(() => {
+    setHideDealerFirstCard(false);
+    setMessage("Dealer's turn...");
+    let localDealerHand = [...dealerHand]; // Use state at the moment of call
+    let localDeck = [...deck]; // Use state at the moment of call
+    let localDealerActionsLog = [...currentRoundDealerActionsLog]; // Start with any initial logs (e.g. reveal)
+
+    // Log initial reveal if not Blackjack and not already logged
+    const dealerInitialValue = calculateHandValue(localDealerHand);
+    if ((dealerInitialValue !== 21 || localDealerHand.length > 2) && !localDealerActionsLog.some(a => a.action === 'Reveal')) {
+         localDealerActionsLog.push({ action: 'Reveal', handValueBefore: dealerInitialValue, handValueAfter: dealerInitialValue });
+    } else if (dealerInitialValue === 21 && localDealerHand.length === 2 && !localDealerActionsLog.some(a => a.action === 'Blackjack!')) {
+        localDealerActionsLog.push({ action: 'Blackjack!', handValueBefore: dealerInitialValue, handValueAfter: dealerInitialValue });
+    }
+
+
+    function performDealerHit() {
+        let currentDealerValue = calculateHandValue(localDealerHand);
+        // Dealer hits on 16 or less.
+        // Dealer hits on soft 17 if GAME_RULES.DEALER_STANDS_ON_SOFT_17 is false.
+        let isSoft17 = false;
+        if (currentDealerValue === 17) {
+            let aceAsElevenMakes17 = false;
+            let numAces = 0;
+            let valueWithoutAces = 0;
+            localDealerHand.forEach(c => {
+                if (c.rank === 'A') numAces++;
+                else valueWithoutAces += c.value;
+            });
+            if (numAces > 0 && (valueWithoutAces + 11 + (numAces - 1) === 17)) {
+                aceAsElevenMakes17 = true;
+            }
+            isSoft17 = aceAsElevenMakes17;
+        }
+
+        if (currentDealerValue < 17 || (currentDealerValue === 17 && isSoft17 && !GAME_RULES.DEALER_STANDS_ON_SOFT_17)) {
+            const { card, updatedDeck } = dealOneCard(localDeck); // dealOneCard uses its own deck state if localDeck is stale
+            localDeck = updatedDeck; // Keep localDeck in sync
+            const valueBeforeHit = calculateHandValue(localDealerHand);
+            localDealerHand.push(card);
+            const valueAfterHit = calculateHandValue(localDealerHand);
+            localDealerActionsLog.push({ action: 'H', handValueBefore: valueBeforeHit, handValueAfter: valueAfterHit, cardDealt: card });
+
+            setDealerHand([...localDealerHand]); // Update UI for dealer card
+            setDeck(localDeck); // Update main deck state
+
+            if (valueAfterHit > 21) {
+                localDealerActionsLog.push({ action: 'Bust', handValueBefore: valueAfterHit, handValueAfter: valueAfterHit });
+                finalizeDealerTurn();
+            } else {
+                setTimeout(performDealerHit, 1000); // Next hit
+            }
+        } else {
+            localDealerActionsLog.push({ action: 'S', handValueBefore: currentDealerValue, handValueAfter: currentDealerValue });
+            finalizeDealerTurn();
         }
     }
 
-    if (nextIndex !== -1) {
-        setCurrentHandIndex(nextIndex);
-        setMessage(`Playing Hand ${nextIndex + 1}. Your move.`);
-        setCanSurrenderGlobal(playerHands[nextIndex].cards.length === 2 && !playerHands[nextIndex].splitFromPair);
-    } else {
-        dealerPlayLogic();
+    function finalizeDealerTurn() {
+        setCurrentRoundDealerActionsLog(localDealerActionsLog); // Set final log for this round
+        // setDealerHand(localDealerHand); // Already updated progressively
+        // determineGameOutcome will use the latest dealerHand from state.
+        determineGameOutcome(false, false); // Not initial blackjacks for this path
     }
-  }, [currentHandIndex, playerHands, dealerPlayLogic]);
+
+    // If dealer has Blackjack (already revealed), skip hitting logic.
+    if (dealerInitialValue === 21 && localDealerHand.length === 2) {
+        finalizeDealerTurn();
+    } else {
+        setTimeout(performDealerHit, 500); // Start dealer's play
+    }
+  }, [dealerHand, deck, dealOneCard, calculateHandValue, determineGameOutcome, currentRoundDealerActionsLog, setMessage, setHideDealerFirstCard, setDealerHand, setDeck, setCurrentRoundDealerActionsLog]);
 
 
-  const hitHandler = useCallback(() => {
-    if (!gameActive || !playerCanHit) return;
+  const advanceToNextHandOrDealerTurn = useCallback(() => {
+    // Check current hand first, if it auto-stood (e.g. split Aces, or 21)
+    const currentHandProcessed = playerHands[currentHandIndex];
+    if (currentHandProcessed && (currentHandProcessed.stood || currentHandProcessed.busted || currentHandProcessed.surrendered)) {
+        // Current hand is done, try to find the next playable hand
+        let nextIndex = -1;
+        for (let i = currentHandIndex + 1; i < playerHands.length; i++) {
+            if (!playerHands[i].stood && !playerHands[i].busted && !playerHands[i].surrendered) {
+                nextIndex = i;
+                break;
+            }
+        }
+
+        if (nextIndex !== -1) {
+            setCurrentHandIndex(nextIndex);
+            setMessage(`Playing Hand ${nextIndex + 1}. Your move.`);
+            // Surrender is only allowed on the first two cards of a non-split hand.
+            // After a split, new hands get two cards. Surrender might be allowed if not split Aces.
+            const nextHand = playerHands[nextIndex];
+            setCanSurrenderGlobal(
+                nextHand.cards.length === 2 &&
+                !nextHand.splitFromPair // Or specific rule: GAME_RULES.SURRENDER_AFTER_SPLIT_ALLOWED
+            );
+        } else {
+            // All player hands are processed, dealer's turn
+            dealerPlayLogic();
+        }
+    } else {
+        // Current hand is still active (e.g. after a hit that wasn't a bust/21, or after a split where new hand is playable)
+        // This case might occur if advanceToNextHandOrDealerTurn is called prematurely
+        // or if the logic for auto-standing the current hand isn't complete before this call.
+        // For now, assume if this is reached, the current hand is still the one to play.
+        setMessage(`Playing Hand ${currentHandIndex + 1}. Your move.`);
+        const handToPlay = playerHands[currentHandIndex];
+         setCanSurrenderGlobal(
+            handToPlay.cards.length === 2 &&
+            !handToPlay.splitFromPair
+        );
+    }
+  }, [currentHandIndex, playerHands, dealerPlayLogic, setMessage, setCurrentHandIndex, setCanSurrenderGlobal]);
+
+  const hitHandler = useCallback(async () => { // Made async if logPlayerAction or other parts become async
+    if (!gameActive || !playerCanHit) return { success: false, message: "Cannot hit." };
+
     const { card, updatedDeck } = dealOneCard(deck);
     setDeck(updatedDeck);
+
+    // Create the new hand state locally first for logging and checks
+    const handBeforeHit = playerHands[currentHandIndex];
+    const newCards = [...handBeforeHit.cards, card];
+    const newHandValue = calculateHandValue(newCards);
+
+    // Log the action. Pass the card that was dealt.
+    // logPlayerAction's setPlayerHands updater will use handBeforeHit.cards and card to determine pre/post values.
+    // For H/D, the `cardDealt` is used to reconstruct the "before" state for optimal play.
+    // The `playerHands[currentHandIndex]` inside `logPlayerAction`'s updater will be `handBeforeHit`.
+    // We need to ensure `logPlayerAction` is called in a way that it can correctly identify the state *before* this hit.
+    // The current `logPlayerAction` expects `cardDealt` and that the hand in `prevPlayerHands` *includes* the `cardDealt`.
+    // So, we update `playerHands` first, then log.
+
     setPlayerHands(prev => {
         const newHands = [...prev];
         const currentHand = { ...newHands[currentHandIndex] };
-        currentHand.cards = [...currentHand.cards, card];
+        currentHand.cards = newCards; // newCards already includes the hit card
+        // Bust/21 status will be set after logging and re-evaluation
         newHands[currentHandIndex] = currentHand;
         return newHands;
     });
-    logPlayerAction('H', card); // Log after state update that adds card
 
-    // Check bust/21 after logging, as logPlayerAction uses pre-action state for optimal play
-    // Need to use a timeout or useEffect to react to playerHands update for bust check
-    // For now, let's assume playerHands is updated for the check below
-    // This is tricky due to async nature of setState. A better way is to calculate value directly.
-    const newHandValue = calculateHandValue([...playerHands[currentHandIndex].cards, card]);
+    // Call logPlayerAction *after* setPlayerHands has been called.
+    // React might batch these, so logPlayerAction's setPlayerHands updater
+    // will see the playerHands state *including* the new card.
+    logPlayerAction('H', card);
 
+    // Now, check for bust or 21 based on the newHandValue
     if (newHandValue > 21) {
         setPlayerHands(prev => prev.map((h, i) => i === currentHandIndex ? { ...h, busted: true, stood: true } : h));
         setMessage(`Hand ${currentHandIndex + 1} Busted!`);
-        setTimeout(() => advanceToNextHandOrDealerTurn(), 50); // Timeout to allow state to settle
     } else if (newHandValue === 21) {
         setPlayerHands(prev => prev.map((h, i) => i === currentHandIndex ? { ...h, stood: true } : h));
-        setTimeout(() => advanceToNextHandOrDealerTurn(), 50);
+    } else {
+        // Message is handled by logPlayerAction
     }
-  }, [gameActive, playerCanHit, deck, dealOneCard, currentHandIndex, logPlayerAction, advanceToNextHandOrDealerTurn, playerHands, calculateHandValue]);
+    return { success: true, message: `Hit with ${card.rank}${card.suit}.` };
+  }, [gameActive, playerCanHit, deck, dealOneCard, currentHandIndex, playerHands, logPlayerAction, calculateHandValue, setMessage, setDeck, setPlayerHands]);
 
   const standHandler = useCallback(() => {
     if (!gameActive || !playerCanStand) return;
-    logPlayerAction('S');
+    logPlayerAction('S'); // Log before state update that changes `stood`
     setPlayerHands(prev => prev.map((h, i) => i === currentHandIndex ? { ...h, stood: true } : h));
-    advanceToNextHandOrDealerTurn();
-  }, [gameActive, playerCanStand, currentHandIndex, logPlayerAction, advanceToNextHandOrDealerTurn]);
+    // advanceToNextHandOrDealerTurn will be called, and it will see the `stood: true`
+    // advanceToNextHandOrDealerTurn(); // Removed, useEffect will handle // advanceToNextHandOrDealerTurn removed from deps
+  }, [gameActive, playerCanStand, currentHandIndex, logPlayerAction, setPlayerHands]);
 
   const doubleHandler = useCallback(() => {
     if (!gameActive || !playerCanDouble) return;
     const { card, updatedDeck } = dealOneCard(deck);
     setDeck(updatedDeck);
+
+    const handBeforeDouble = playerHands[currentHandIndex];
+    const newCards = [...handBeforeDouble.cards, card];
+    const newHandValue = calculateHandValue(newCards);
+
     setPlayerHands(prev => {
         const newHands = [...prev];
-        const currentHand = { ...newHands[currentHandIndex] };
-        currentHand.cards = [...currentHand.cards, card];
-        currentHand.doubled = true;
-        currentHand.stood = true; // Player stands after double
-        if (calculateHandValue(currentHand.cards) > 21) {
-            currentHand.busted = true;
-        }
-        newHands[currentHandIndex] = currentHand;
+        const currentHandUpdate = {
+            ...newHands[currentHandIndex],
+            cards: newCards,
+            doubled: true,
+            stood: true, // Player stands after double
+            busted: newHandValue > 21,
+        };
+        newHands[currentHandIndex] = currentHandUpdate;
         return newHands;
     });
-    logPlayerAction('D', card);
-    advanceToNextHandOrDealerTurn();
-  }, [gameActive, playerCanDouble, deck, dealOneCard, currentHandIndex, logPlayerAction, advanceToNextHandOrDealerTurn, calculateHandValue]);
+
+    logPlayerAction('D', card); // Log after playerHands update
+
+    if (newHandValue > 21) {
+        setMessage(`Hand ${currentHandIndex + 1} Doubled and Busted!`);
+    }
+    // advanceToNextHandOrDealerTurn will be called, and it will see the `stood: true`
+    // advanceToNextHandOrDealerTurn(); // Removed, useEffect will handle
+  }, [gameActive, playerCanDouble, deck, dealOneCard, currentHandIndex, playerHands, logPlayerAction, calculateHandValue, setMessage, setDeck, setPlayerHands]);
 
   const surrenderHandler = useCallback(() => {
     if (!gameActive || !playerCanSurrender) return;
-    logPlayerAction('R');
+    logPlayerAction('R'); // Log before state update
     setPlayerHands(prev => prev.map((h, i) => i === currentHandIndex ? { ...h, surrendered: true, stood: true, outcome: "Loss" } : h));
-    advanceToNextHandOrDealerTurn();
-  }, [gameActive, playerCanSurrender, currentHandIndex, logPlayerAction, advanceToNextHandOrDealerTurn]);
+    // advanceToNextHandOrDealerTurn will be called, and it will see the `stood: true` and `surrendered: true`
+    // advanceToNextHandOrDealerTurn(); // Removed, useEffect will handle // advanceToNextHandOrDealerTurn removed from deps
+  }, [gameActive, playerCanSurrender, currentHandIndex, logPlayerAction, setPlayerHands]);
 
   const splitHandler = useCallback(() => {
     if (!gameActive || !playerCanSplit) return;
 
-    logPlayerAction('P'); // Log split decision for the original hand
+    const handToSplitOriginal = playerHands[currentHandIndex];
+    logPlayerAction('P'); // Log split decision for the original hand configuration
+
+    // Deck state needs to be managed carefully here.
+    // dealOneCard updates the main deck state via setDeck if it reshuffles.
+    // We need to ensure the deck used for the second card is the one returned after the first deal.
+    let tempDeck = [...deck];
+    const { card: newCardForHand1, updatedDeck: deckAfterCard1 } = dealOneCard(tempDeck);
+    tempDeck = deckAfterCard1;
+    const { card: newCardForHand2, updatedDeck: deckAfterCard2 } = dealOneCard(tempDeck);
+    setDeck(deckAfterCard2); // Final deck state after both cards are dealt for splits
 
     setPlayerHands(prevPlayerHands => {
         const hands = [...prevPlayerHands];
-        const handToSplit = hands[currentHandIndex];
-        const card1 = handToSplit.cards[0];
-        const card2 = handToSplit.cards[1];
-
-        let { card: newCardForHand1, updatedDeck: deckAfterCard1 } = dealOneCard(deck);
-        let { card: newCardForHand2, updatedDeck: deckAfterCard2 } = dealOneCard(deckAfterCard1);
-        setDeck(deckAfterCard2);
+        const handToSplit = hands[currentHandIndex]; // Get the latest version from prevPlayerHands
+        const card1Original = handToSplit.cards[0];
+        const card2Original = handToSplit.cards[1];
 
         const firstSplitHand = {
             ...handToSplit, // carry over initial bet etc. if implemented
-            cards: [card1, newCardForHand1],
+            cards: [card1Original, newCardForHand1],
             splitFromPair: true,
             doubled: false, stood: false, busted: false, surrendered: false, isBlackjack: false, outcome: null,
-            initialCardsForThisHand: [card1, newCardForHand1], // New initial cards
+            initialCardsForThisHand: [card1Original, newCardForHand1],
             actionsTakenLog: [] // Reset actions log for this new hand
         };
 
         const secondSplitHand = {
             ...handToSplit,
-            cards: [card2, newCardForHand2],
+            cards: [card2Original, newCardForHand2],
             splitFromPair: true,
             doubled: false, stood: false, busted: false, surrendered: false, isBlackjack: false, outcome: null,
-            initialCardsForThisHand: [card2, newCardForHand2],
+            initialCardsForThisHand: [card2Original, newCardForHand2],
             actionsTakenLog: []
         };
 
         // Handle Aces - usually only one card and stand
-        if (card1.rank === 'A') {
+        if (card1Original.rank === 'A') {
             firstSplitHand.stood = true;
+            // Check Blackjack for split Ace + Ten
+            if (calculateHandValue(firstSplitHand.cards) === 21) firstSplitHand.isBlackjack = true;
+
             secondSplitHand.stood = true;
+            if (calculateHandValue(secondSplitHand.cards) === 21) secondSplitHand.isBlackjack = true;
         }
 
         hands.splice(currentHandIndex, 1, firstSplitHand, secondSplitHand);
@@ -615,28 +794,60 @@ export const useBlackjackGame = () => {
 
     // After splitting, the game continues with the first of the split hands (at currentHandIndex)
     // unless it was split Aces which auto-stand.
-    // If Aces were split, advance. Otherwise, the current hand is now the first split hand.
-    if (playerHands[currentHandIndex].cards[0].rank === 'A') {
-         advanceToNextHandOrDealerTurn();
+    // Need to check the state *after* setPlayerHands has resolved.
+    // Using a useEffect or checking the card rank from `card1Original` is safer here.
+    if (handToSplitOriginal.cards[0].rank === 'A') { // Check rank of the card that was split
+         // Aces are auto-stood. The useEffect will pick this up for both split Ace hands.
+         // advanceToNextHandOrDealerTurn(); // Removed, useEffect will handle
+         // Ensure advanceToNextHandOrDealerTurn is robust enough for multiple stood hands from split.
     } else {
+        // For non-Aces, the first split hand (now at currentHandIndex) is played.
+        // advanceToNextHandOrDealerTurn might not be needed if the current hand is now the new active one.
+        // Instead, just update message and surrender status.
         setMessage(`Playing Hand ${currentHandIndex + 1} (Split). Your move.`);
-        setCanSurrenderGlobal(false); // Cannot surrender after split generally
+        setCanSurrenderGlobal(false); // Cannot surrender after split (standard rule)
     }
-  }, [gameActive, playerCanSplit, currentHandIndex, deck, dealOneCard, logPlayerAction, advanceToNextHandOrDealerTurn, playerHands]);
+  }, [gameActive, playerCanSplit, currentHandIndex, deck, playerHands, dealOneCard, logPlayerAction, calculateHandValue, setMessage, setDeck, setPlayerHands, setCanSurrenderGlobal]);
 
 
   const showHistoryHandler = useCallback(() => { setShowHistoryModal(true); }, []);
   const closeHistoryModalHandler = useCallback(() => { setShowHistoryModal(false); }, []);
 
+  // Effect for advancing turn when a hand is resolved (stood, busted, surrendered)
   useEffect(() => {
-    if (gameActive && currentPlayerHand && dealerHand.length > 0 && currentPlayerHand.cards.length > 0) {
-        const dealerUpCardForHighlight = hideDealerFirstCard ? dealerHand[1] : dealerHand[0];
-        if (dealerUpCardForHighlight) { // Ensure dealer upcard is available
+    if (!gameActive) return; // Only run if game is active
+
+    const currentHand = playerHands[currentHandIndex];
+    if (currentHand && (currentHand.stood || currentHand.busted || currentHand.surrendered)) {
+      // Using a microtask (Promise.resolve) or a minimal setTimeout to allow React to batch state updates
+      // from the action handler and logPlayerAction before advancing.
+      // This helps ensure advanceToNextHandOrDealerTurn sees the most up-to-date state.
+      const timerId = setTimeout(() => {
+        advanceToNextHandOrDealerTurn();
+      }, 0); // 0ms or 1ms can be enough for batching
+      return () => clearTimeout(timerId);
+    }
+  }, [playerHands, currentHandIndex, gameActive, advanceToNextHandOrDealerTurn]);
+
+
+  useEffect(() => {
+    // This effect updates the strategy guide highlight.
+    // It depends on currentPlayerHand, which is derived from playerHands and currentHandIndex.
+    // Ensure it runs after playerHands/currentHandIndex updates.
+    const handToHighlight = playerHands[currentHandIndex];
+
+    if (gameActive && handToHighlight && dealerHand.length > 0 && handToHighlight.cards.length > 0) {
+        // Determine the dealer's upcard for strategy purposes
+        // If hideDealerFirstCard is true, dealerHand[0] is the hole card, dealerHand[1] is the upcard.
+        // If hideDealerFirstCard is false, dealerHand[0] is the first card (now visible), effectively the upcard.
+        const dealerUpCardForStrategy = hideDealerFirstCard ? (dealerHand[1] || null) : (dealerHand[0] || null);
+
+        if (dealerUpCardForStrategy) {
             const params = getStrategyKeysForHighlight(
-                currentPlayerHand,
+                handToHighlight,
                 // Pass only the upcard for strategy guide, not the whole hand if one is hidden
-                hideDealerFirstCard ? [dealerHand[1]] : dealerHand,
-                hideDealerFirstCard
+                [dealerUpCardForStrategy], // Always pass an array with the single upcard
+                false // We've already determined the upcard, so treat it as visible for the key generation
             );
             setHighlightParams(params);
         } else {
@@ -645,13 +856,13 @@ export const useBlackjackGame = () => {
     } else {
       setHighlightParams({ type: null, playerKey: null, dealerKey: null });
     }
-  }, [gameActive, currentPlayerHand, dealerHand, hideDealerFirstCard, getStrategyKeysForHighlight]);
+  }, [gameActive, playerHands, currentHandIndex, dealerHand, hideDealerFirstCard, getStrategyKeysForHighlight]);
 
   return {
     playerHands, currentHandIndex, dealerHand, gameActive, message, hideDealerFirstCard,
     highlightParams, gameHistory, showHistoryModal, sessionStats,
     newGameHandler, hitHandler, standHandler, doubleHandler, splitHandler, surrenderHandler,
-    showHistoryHandler, closeHistoryModalHandler,
+    showHistoryHandler, closeHistoryModalHandler, resetSessionStats,
     getHandScoreText,
     playerCanHit, playerCanStand, playerCanDouble, playerCanSplit, playerCanSurrender,
   };

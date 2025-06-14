@@ -48,8 +48,12 @@ function App() {
         />
         <Actions
           onNewGame={newGameHandler}
-          onHit={hitHandler} onStand={standHandler} onDouble={doubleHandler}
-          onSplit={splitHandler} onSurrender={surrenderHandler} onShowHistory={showHistoryHandler}
+          onHit={hitHandler}
+          onStand={standHandler}
+          onDouble={doubleHandler}
+          onSplit={splitHandler}
+          onSurrender={surrenderHandler}
+          onShowHistory={showHistoryHandler}
           playerCanHit={playerCanHit} playerCanStand={playerCanStand} playerCanDouble={playerCanDouble}
           playerCanSplit={playerCanSplit} playerCanSurrender={playerCanSurrender}
         />
