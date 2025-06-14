@@ -4,9 +4,9 @@ import GameArea from './components/GameArea';
 import Actions from './components/Actions';
 import StrategyGuide from './components/StrategyGuide';
 import HistoryModal from './components/HistoryModal';
-import { useBlackjackGame } from './hooks/useBlackjackGame';
+import { useBlackjackGame, BlackjackGameHook } from './hooks/useBlackjackGame';
 
-function App() {
+const App: React.FC = () => {
   const {
     playerHands,
     currentHandIndex,
@@ -34,7 +34,7 @@ function App() {
     playerCanSplit,
     playerCanSurrender,
   } = useBlackjackGame();
-
+  
   return (
     <div className="main-game-area">
       <div className="game-container">

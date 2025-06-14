@@ -1,6 +1,20 @@
 import React from 'react';
 
-const Actions = ({
+interface ActionsProps {
+  onNewGame: () => void;
+  onHit: () => void;
+  onStand: () => void;
+  onDouble: () => void;
+  onSplit: () => void;
+  onSurrender: () => void;
+  onShowHistory: () => void;
+  playerCanHit: boolean;
+  playerCanStand: boolean;
+  playerCanDouble: boolean;
+  playerCanSplit: boolean;
+  playerCanSurrender: boolean;
+}
+const Actions: React.FC<ActionsProps> = ({
   onNewGame,
   onHit,
   onStand,

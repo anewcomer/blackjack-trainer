@@ -1,16 +1,24 @@
 import React from 'react';
-import Card from './Card';
+import CardComponent from './Card'; // Assuming Card.tsx exports CardComponent
+import { Card as CardType, PlayerHand as PlayerHandType } from '../hooks/useBlackjackGame'; // Import core types
 
-const GameArea = ({ dealerHand, playerHands, currentHandIndex, hideDealerFirstCard, getHandScoreText }) => {
-  const renderCards = (hand, hidden = false) => (
+interface GameAreaProps {
+  dealerHand: CardType[];
+  playerHands: PlayerHandType[];
+  currentHandIndex: number;
+  hideDealerFirstCard: boolean;
+  getHandScoreText: (handCards: CardType[]) => string;
+}
+
+const GameArea: React.FC<GameAreaProps> = ({ dealerHand, playerHands, currentHandIndex, hideDealerFirstCard, getHandScoreText }) => {
+  const renderCards = (hand: CardType[], hidden: boolean = false) => (
     <div className="cards" aria-live="polite">
       {hand.map((card, idx) => (
-        <Card key={card.id || idx} card={card} hidden={hidden && idx === 0} />
+        <CardComponent key={card.id || idx} card={card} hidden={hidden && idx === 0} />
       ))}
     </div>
   );
-
-  const renderHandArea = (title, hand, score, hidden = false, isPlayer = false, handIndex = null, totalHands = null) => (
+  const renderHandArea = (title: string, hand: CardType[], score: string | null, hidden: boolean = false, isPlayer: boolean = false, handIndex: number | null = null, totalHands: number | null = null) => (
     <div className={isPlayer ? "player-area" : "dealer-area"}>
       <h2>{title}</h2>
       {renderCards(hand, hidden)}
@@ -21,7 +29,7 @@ const GameArea = ({ dealerHand, playerHands, currentHandIndex, hideDealerFirstCa
     </div>
   );
 
-  const currentPlayerHand = (playerHands && playerHands.length > 0 && currentHandIndex < playerHands.length)
+  const currentPlayerHand: PlayerHandType | null = (playerHands && playerHands.length > 0 && currentHandIndex < playerHands.length)
     ? playerHands[currentHandIndex]
     : null;
 

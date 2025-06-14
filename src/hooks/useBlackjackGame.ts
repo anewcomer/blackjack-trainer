@@ -1,9 +1,39 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+
+// --- Type Definitions ---
+export interface Card {
+  rank: string;
+  suit: string;
+  value: number;
+  id: string;
+}
+
+export interface ActionLogEntry {
+  playerAction: string;
+  optimalAction: string;
+  wasCorrect: boolean;
+  handValueBefore: number;
+  handValueAfter: number;
+  cardDealt: Card | null;
+}
+
+export interface PlayerHand {
+  cards: Card[];
+  busted: boolean;
+  stood: boolean;
+  doubled: boolean;
+  splitFromPair: boolean;
+  surrendered: boolean;
+  isBlackjack: boolean;
+  outcome: 'Win' | 'Loss' | 'Push' | null;
+  initialCardsForThisHand: Card[];
+  actionsTakenLog: ActionLogEntry[];
+}
 
 // --- Card Data ---
-const SUITS = ['♠', '♥', '♦', '♣'];
-const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
-const VALUES = {
+const SUITS: string[] = ['♠', '♥', '♦', '♣'];
+const RANKS: string[] = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+const VALUES: { [key: string]: number } = {
     '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10,
     'J': 10, 'Q': 10, 'K': 10, 'A': 11 // Ace is 11 initially
 };
@@ -14,20 +44,109 @@ const GAME_RULES = {
   MAX_SPLIT_HANDS: 4,
 };
 
-export const useBlackjackGame = () => {
-  const [deck, setDeck] = useState([]);
-  const [playerHands, setPlayerHands] = useState([]);
-  const [currentHandIndex, setCurrentHandIndex] = useState(0);
-  const [dealerHand, setDealerHand] = useState([]);
-  const [gameActive, setGameActive] = useState(false);
-  const [message, setMessage] = useState('Click "New Game" to start.');
-  const [hideDealerFirstCard, setHideDealerFirstCard] = useState(true);
-  const [canSurrenderGlobal, setCanSurrenderGlobal] = useState(false);
-  const [highlightParams, setHighlightParams] = useState({ type: null, playerKey: null, dealerKey: null });
-  const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [gameHistory, setGameHistory] = useState([]); // Stores detailed round summaries
-  const [currentRoundDealerActionsLog, setCurrentRoundDealerActionsLog] = useState([]);
-  const [sessionStats, setSessionStats] = useState({
+export interface DealerActionLogEntry {
+  action: string;
+  handValueBefore: number;
+  handValueAfter: number;
+  cardDealt?: Card | null;
+}
+
+export interface SessionStats {
+  correctMoves: number;
+  incorrectMoves: number;
+  totalDecisions: number;
+  wins: number;
+  losses: number;
+  pushes: number;
+  handsPlayed: number;
+}
+
+export interface PlayerHandHistoryForModal {
+  initialCards: string;
+  actions: Array<{
+    action: string;
+    optimal: string;
+    correct: boolean;
+    valueBefore: number;
+    valueAfter: number;
+    cardDealt: string | null;
+  }>;
+  finalCards: string;
+  finalScore: number;
+  outcome: 'Win' | 'Loss' | 'Push' | null;
+  busted: boolean;
+  surrendered: boolean;
+  isBlackjack: boolean;
+}
+
+export interface GameHistoryEntry {
+  id: number;
+  timestamp: string;
+  playerHands: PlayerHandHistoryForModal[];
+  dealerUpCard: string;
+  dealerHoleCard: string;
+  dealerActions: Array<{
+    action: string;
+    valueBefore: number;
+    valueAfter: number;
+    cardDealt: string | null;
+  }>;
+  dealerFinalCards: string;
+  dealerFinalScore: number;
+  dealerBusted: boolean;
+  dealerBlackjackOnInit: boolean;
+  playerBlackjackOnInit: boolean;
+}
+
+export interface HighlightParams {
+  type: 'hard' | 'soft' | 'pairs' | null;
+  playerKey: string | null;
+  dealerKey: string | null;
+}
+
+export interface BlackjackGameHook {
+  playerHands: PlayerHand[];
+  currentHandIndex: number;
+  dealerHand: Card[];
+  gameActive: boolean;
+  message: string;
+  hideDealerFirstCard: boolean;
+  highlightParams: HighlightParams;
+  gameHistory: GameHistoryEntry[];
+  showHistoryModal: boolean;
+  sessionStats: SessionStats;
+  newGameHandler: () => void;
+  hitHandler: () => Promise<{ success: boolean; message: string }>;
+  standHandler: () => void;
+  doubleHandler: () => void;
+  splitHandler: () => void;
+  surrenderHandler: () => void;
+  showHistoryHandler: () => void;
+  closeHistoryModalHandler: () => void;
+  resetSessionStats: () => void;
+  getHandScoreText: (handCards: Card[]) => string;
+  playerCanHit: boolean;
+  playerCanStand: boolean;
+  playerCanDouble: boolean;
+  playerCanSplit: boolean;
+  playerCanSurrender: boolean;
+}
+
+
+export const useBlackjackGame = (): BlackjackGameHook => {
+  const [deck, setDeck] = useState<Card[]>([]);
+  const [playerHands, setPlayerHands] = useState<PlayerHand[]>([]);
+  const [currentHandIndex, setCurrentHandIndex] = useState<number>(0);
+  const [dealerHand, setDealerHand] = useState<Card[]>([]);
+  const [gameActive, setGameActive] = useState<boolean>(false);
+  const [message, setMessage] = useState<string>('Click "New Game" to start.');
+  const [hideDealerFirstCard, setHideDealerFirstCard] = useState<boolean>(true);
+  const [canSurrenderGlobal, setCanSurrenderGlobal] = useState<boolean>(false);
+  const [highlightParams, setHighlightParams] = useState<HighlightParams>({ type: null, playerKey: null, dealerKey: null });
+  const [showHistoryModal, setShowHistoryModal] = useState<boolean>(false);
+  const [gameHistory, setGameHistory] = useState<GameHistoryEntry[]>([]);
+  const [currentRoundDealerActionsLog, setCurrentRoundDealerActionsLog] = useState<DealerActionLogEntry[]>([]);
+  const [sessionStats, setSessionStats] = useState<SessionStats>({
     correctMoves: 0, incorrectMoves: 0, totalDecisions: 0,
     wins: 0, losses: 0, pushes: 0, handsPlayed: 0
   });
@@ -41,9 +160,9 @@ export const useBlackjackGame = () => {
   }, [setSessionStats, setMessage]);
 
   // Forward declaration for use in getOptimalPlay
-  let getOptimalPlayRef = React.useRef(null);
+  const getOptimalPlayRef = useRef<((playerHandCards: Card[], dealerUpCard: Card, canSplitCurrent: boolean, canDoubleCurrent: boolean, canSurrenderCurrent: boolean) => string) | null>(null);
 
-  const calculateHandValue = useCallback((handCards) => {
+  const calculateHandValue = useCallback((handCards: Card[]): number => {
     if (!handCards || handCards.length === 0) return 0;
     let value = 0;
     let numAces = 0;
@@ -60,7 +179,7 @@ export const useBlackjackGame = () => {
     return value;
   }, []);
 
-  const getHandScoreText = useCallback((handCards) => {
+  const getHandScoreText = useCallback((handCards: Card[]): string => {
     if (!handCards || handCards.length === 0) return '';
     const currentScore = calculateHandValue(handCards);
     let text = `${currentScore}`;
@@ -82,8 +201,8 @@ export const useBlackjackGame = () => {
     return text;
   }, [calculateHandValue]);
 
-  const createNewDeck = useCallback(() => {
-    const newDeck = [];
+  const createNewDeck = useCallback((): Card[] => {
+    const newDeck: Card[] = [];
     for (let i = 0; i < 1; i++) { // Using 1 deck for easier testing
         for (const suit of SUITS) {
             for (const rank of RANKS) {
@@ -94,8 +213,8 @@ export const useBlackjackGame = () => {
     return newDeck;
   }, []);
 
-  const shuffleDeck = useCallback((deckToShuffle) => {
-    let shuffledDeck = [...deckToShuffle];
+  const shuffleDeck = useCallback((deckToShuffle: Card[]): Card[] => {
+    let shuffledDeck: Card[] = [...deckToShuffle];
     for (let i = shuffledDeck.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [shuffledDeck[i], shuffledDeck[j]] = [shuffledDeck[j], shuffledDeck[i]];
@@ -103,18 +222,24 @@ export const useBlackjackGame = () => {
     return shuffledDeck;
   }, []);
 
-  const dealOneCard = useCallback((currentDeck) => {
-    let deckToDealFrom = [...currentDeck];
+  const dealOneCard = useCallback((currentDeck: Card[]): { card: Card; updatedDeck: Card[] } => {
+    let deckToDealFrom: Card[] = [...currentDeck];
     if (deckToDealFrom.length < 20) { // Reshuffle if deck is low
         setMessage("Shuffling new deck...");
         deckToDealFrom = shuffleDeck(createNewDeck());
     }
-    const card = deckToDealFrom.pop();
+    const card = deckToDealFrom.pop(); // Should always return a card due to reshuffle logic
+    if (!card) {
+        // This should ideally not happen if createNewDeck always returns a populated deck
+        console.error("Deck ran out of cards unexpectedly after reshuffle attempt.");
+        // Fallback: create a new deck and deal from it, though this indicates a deeper issue.
+        deckToDealFrom = shuffleDeck(createNewDeck());
+        const emergencyCard = deckToDealFrom.pop()!; // Use non-null assertion if confident
+        return { card: emergencyCard, updatedDeck: deckToDealFrom };
+    }
     return { card, updatedDeck: deckToDealFrom };
   }, [createNewDeck, shuffleDeck, setMessage]);
-
-
-  const logRoundToHistory = useCallback((resolvedPlayerHands, finalDealerHand, finalDealerActionsLog, dealerBlackjack, playerBlackjackOnInit) => {
+  const logRoundToHistory = useCallback((resolvedPlayerHands: PlayerHand[], finalDealerHand: Card[], finalDealerActionsLog: DealerActionLogEntry[], dealerBlackjack: boolean, playerBlackjackOnInit: boolean) => {
     const roundEntry = {
       id: Date.now(),
       timestamp: new Date().toISOString(),
@@ -126,7 +251,7 @@ export const useBlackjackGame = () => {
           correct: log.wasCorrect,
           valueBefore: log.handValueBefore,
           valueAfter: log.handValueAfter,
-          cardDealt: log.cardDealt ? `${log.cardDealt.rank}${log.cardDealt.suit}` : null
+          cardDealt: log.cardDealt ? `${log.cardDealt.rank}${log.cardDealt.suit}` : null,
         })),
         finalCards: hand.cards.map(c => `${c.rank}${c.suit}`).join(', '),
         finalScore: calculateHandValue(hand.cards),
@@ -141,7 +266,7 @@ export const useBlackjackGame = () => {
         action: log.action,
         valueBefore: log.handValueBefore,
         valueAfter: log.handValueAfter,
-        cardDealt: log.cardDealt ? `${log.cardDealt.rank}${log.cardDealt.suit}` : null
+        cardDealt: log.cardDealt ? `${log.cardDealt.rank}${log.cardDealt.suit}` : null,
       })),
       dealerFinalCards: finalDealerHand.map(c => `${c.rank}${c.suit}`).join(', '),
       dealerFinalScore: calculateHandValue(finalDealerHand),
@@ -153,13 +278,13 @@ export const useBlackjackGame = () => {
   }, [calculateHandValue]);
 
   // Moved up: determineGameOutcome (used by newGameHandler, dealerPlayLogic)
-  const determineGameOutcome = useCallback((isInitialBlackjackRound = false, playerHadInitialBlackjack = false) => {
+  const determineGameOutcome = useCallback((isInitialBlackjackRound: boolean = false, playerHadInitialBlackjack: boolean = false) => {
     const finalDealerValue = calculateHandValue(dealerHand);
     const dealerBusted = finalDealerValue > 21;
-    let finalMessages = [];
+    let finalMessages: string[] = [];
 
-    const updatedPlayerHands = playerHands.map(hand => {
-        let handOutcome = hand.outcome; // Preserve if already set (e.g. surrender, initial BJ)
+    const updatedPlayerHands: PlayerHand[] = playerHands.map(hand => {
+        let handOutcome: PlayerHand['outcome'] = hand.outcome; // Preserve if already set (e.g. surrender, initial BJ)
         if (!handOutcome) { // Only determine if not already set
             const playerValue = calculateHandValue(hand.cards);
             if (hand.busted) handOutcome = "Loss";
@@ -195,16 +320,16 @@ export const useBlackjackGame = () => {
     setMessage("Setting up new game...");
     let currentDeck = shuffleDeck(createNewDeck());
 
-    const dealOne = (deck) => {
+    const dealOne = (deck: Card[]): { card: Card; updatedDeck: Card[] } => {
         if (!deck || deck.length === 0) {
             // This case should ideally not be hit if dealOneCard handles reshuffling
             console.warn("newGameHandler: Dealing from an empty or null deck, attempting recovery.");
             return dealOneCard(shuffleDeck(createNewDeck()));
         }
         return dealOneCard(deck);
-    };
+    }
 
-    let card1, card2, card3, card4;
+    let card1: Card, card2: Card, card3: Card, card4: Card;
     let deckAfterDeal = currentDeck;
 
     ({ card: card1, updatedDeck: deckAfterDeal } = dealOne(deckAfterDeal));
@@ -212,11 +337,10 @@ export const useBlackjackGame = () => {
     ({ card: card3, updatedDeck: deckAfterDeal } = dealOne(deckAfterDeal));
     ({ card: card4, updatedDeck: deckAfterDeal } = dealOne(deckAfterDeal));
 
+    const playerCards: Card[] = [card1, card3]; // Assuming dealOne always returns a card
+    const dealerCards: Card[] = [card2, card4]; // Assuming dealOne always returns a card
 
-    const playerCards = [card1, card3].filter(Boolean);
-    const dealerCards = [card2, card4].filter(Boolean);
-
-    const initialPlayerHand = {
+    const initialPlayerHand: PlayerHand = {
         cards: playerCards, busted: false, stood: false, doubled: false,
         splitFromPair: false, surrendered: false,
         isBlackjack: false, outcome: null,
@@ -238,18 +362,18 @@ export const useBlackjackGame = () => {
 
     if (playerHasBlackjack || dealerHasBlackjack) {
         setGameActive(false); // Game ends immediately
-        setPlayerHands(prev => [{ ...prev[0], isBlackjack: playerHasBlackjack, stood: true }]);
+        setPlayerHands(prev => [{ ...prev[0], isBlackjack: playerHasBlackjack, stood: true } as PlayerHand]);
         setHideDealerFirstCard(false);
         let outcomeMessage = "";
         if (playerHasBlackjack && dealerHasBlackjack) {
             outcomeMessage = "Push! Both have Blackjack.";
-            setPlayerHands(prev => [{ ...prev[0], outcome: "Push" }]);
+            setPlayerHands(prev => [{ ...prev[0], outcome: "Push" } as PlayerHand]);
         } else if (playerHasBlackjack) {
             outcomeMessage = "Blackjack! You win!";
-            setPlayerHands(prev => [{ ...prev[0], outcome: "Win" }]);
+            setPlayerHands(prev => [{ ...prev[0], outcome: "Win" } as PlayerHand]);
         } else { // Dealer Blackjack
             outcomeMessage = "Dealer Blackjack! You lose.";
-            setPlayerHands(prev => [{ ...prev[0], outcome: "Loss" }]);
+            setPlayerHands(prev => [{ ...prev[0], outcome: "Loss" } as PlayerHand]);
         }
         setMessage(outcomeMessage); // Set message before determineGameOutcome
         // determineGameOutcome will use the playerHands state set just above
@@ -270,17 +394,17 @@ export const useBlackjackGame = () => {
   }, [createNewDeck, shuffleDeck, dealOneCard, calculateHandValue, determineGameOutcome, setMessage, setDeck, setPlayerHands, setDealerHand, setCurrentHandIndex, setHideDealerFirstCard, setCanSurrenderGlobal, setCurrentRoundDealerActionsLog, setGameActive]);
 
   // --- Strategy and Mistake Checking ---
-  const getStrategyKeysForHighlight = useCallback((playerHandObj, dealerCards, isDealerCardHidden) => {
+  const getStrategyKeysForHighlight = useCallback((playerHandObj: PlayerHand | null, dealerCards: Card[], isDealerCardHidden: boolean): HighlightParams => {
     if (!playerHandObj || playerHandObj.cards.length === 0 || !dealerCards || dealerCards.length === 0) {
       return { type: null, playerKey: null, dealerKey: null };
     }
-    const dealerUpCard = isDealerCardHidden ? dealerCards[1] : dealerCards[0];
+    const dealerUpCard = isDealerCardHidden ? dealerCards[1] : dealerCards[0]; // dealerCards[1] could be undefined
     if (!dealerUpCard) return { type: null, playerKey: null, dealerKey: null };
 
     const dealerRank = dealerUpCard.rank;
     let tempDealerKey = (['K', 'Q', 'J'].includes(dealerRank)) ? 'T' : dealerRank;
     if (!['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'A'].includes(tempDealerKey)) tempDealerKey = null;
-    const dealerKey = tempDealerKey;
+    const dealerKey = tempDealerKey as HighlightParams['dealerKey'];
 
     const playerCards = playerHandObj.cards;
     const numPlayerCards = playerCards.length;
@@ -293,7 +417,7 @@ export const useBlackjackGame = () => {
       const rankStr = (['K', 'Q', 'J'].includes(rank)) ? 'T' : rank;
       playerKey = `${rankStr},${rankStr}`;
       if (!['A,A', 'T,T', '9,9', '8,8', '7,7', '6,6', '5,5', '4,4', '3,3', '2,2'].includes(playerKey)) {
-        type = null; playerKey = null;
+        type = null; playerKey = null; // Reset if not a valid pair key
       }
     } else {
       let hasAce = false, nonAceTotal = 0, aceCount = 0;
@@ -305,7 +429,7 @@ export const useBlackjackGame = () => {
         type = 'soft';
         const otherValue = playerValue - 11;
         if (otherValue >= 2 && otherValue <= 9) playerKey = `A,${otherValue}`;
-        else { type = null; playerKey = null; }
+        else { type = null; playerKey = null; } // Reset if not a valid soft key
       } else {
         type = 'hard';
         if (playerValue >= 17) playerKey = '17+';
@@ -313,14 +437,14 @@ export const useBlackjackGame = () => {
         else if (playerValue < 5) playerKey = '5-7'; // Or handle as specific numbers if strategy chart does
         else playerKey = playerValue.toString();
         if (!['17+', '16', '15', '14', '13', '12', '11', '10', '9', '8', '5-7'].includes(playerKey)) {
-           playerKey = null; // Or map to a category if needed
+           playerKey = null; // Reset if not a valid hard key
         }
       }
     }
-    return { type, playerKey, dealerKey };
+    return { type: type as HighlightParams['type'], playerKey, dealerKey };
   }, [calculateHandValue]);
 
-  const getOptimalPlay = useCallback((playerHandCards, dealerUpCard, canSplit, canDouble, canSurrenderNow) => {
+  const getOptimalPlay = useCallback((playerHandCards: Card[], dealerUpCard: Card, canSplitCurrent: boolean, canDoubleCurrent: boolean, canSurrenderCurrent: boolean): string => {
     const playerValue = calculateHandValue(playerHandCards);
     const dealerCardRank = dealerUpCard.rank;
     // const dealerIsAce = dealerCardRank === 'A'; // Unused
@@ -346,14 +470,14 @@ export const useBlackjackGame = () => {
     // For now, using the simplified direct logic:
 
     // Surrender (Late Surrender, if allowed)
-    if (canSurrenderNow && playerHandCards.length === 2 && !isPlayerPair) { // Surrender only on first two cards, not after split
+    if (canSurrenderCurrent && playerHandCards.length === 2 && !isPlayerPair) { // Surrender only on first two cards, not after split
         if (playerValue === 16 && (dealerCardRank === '9' || ['10', 'J', 'Q', 'K'].includes(dealerCardRank) || dealerCardRank === 'A')) return 'R';
         if (playerValue === 15 && (['10', 'J', 'Q', 'K'].includes(dealerCardRank) || dealerCardRank === 'A')) return 'R';
         // Add more surrender rules if applicable (e.g., 15 vs A if H17)
     }
 
     // Pair Splitting
-    if (isPlayerPair && canSplit) {
+    if (isPlayerPair && canSplitCurrent) {
         const pRank = playerHandCards[0].rank;
         if (pRank === 'A' || pRank === '8') return 'P';
         if (['10', 'J', 'Q', 'K'].includes(pRank)) return 'S'; // Never split 10s
@@ -364,7 +488,7 @@ export const useBlackjackGame = () => {
         if (pRank === '7') return (VALUES[dealerCardRank] >= 2 && VALUES[dealerCardRank] <= 7) ? 'P' : 'H';
         if (pRank === '6') return (VALUES[dealerCardRank] >= 2 && VALUES[dealerCardRank] <= 6) ? 'P' : 'H';
         if (pRank === '5') { // Never split 5s, treat as hard 10
-             if (canDouble && VALUES[dealerCardRank] >= 2 && VALUES[dealerCardRank] <= 9) return 'D';
+             if (canDoubleCurrent && VALUES[dealerCardRank] >= 2 && VALUES[dealerCardRank] <= 9) return 'D';
              return 'H';
         }
         if (pRank === '4') { // Split 4s vs 5,6 if Double After Split (DAS) is allowed
@@ -381,25 +505,25 @@ export const useBlackjackGame = () => {
     if (isPlayerSoft) {
         if (playerValue >= 20) return 'S'; // A,9 (20) or A,8 (19) - A,8 logic below
         if (playerValue === 19) { // A,8
-             return (canDouble && VALUES[dealerCardRank] === 6 && GAME_RULES.DEALER_STANDS_ON_SOFT_17) ? 'D' : 'S';
+             return (canDoubleCurrent && VALUES[dealerCardRank] === 6 && GAME_RULES.DEALER_STANDS_ON_SOFT_17) ? 'D' : 'S';
         }
         if (playerValue === 18) { // A,7
-            if (canDouble && VALUES[dealerCardRank] >= 2 && VALUES[dealerCardRank] <= 6) return 'D';
+            if (canDoubleCurrent && VALUES[dealerCardRank] >= 2 && VALUES[dealerCardRank] <= 6) return 'D';
             if (VALUES[dealerCardRank] <= 8) return 'S'; // Stand vs 2-8
             return 'H'; // Hit vs 9, T, A
         }
         if (playerValue === 17) { // A,6
-            if (canDouble && VALUES[dealerCardRank] >= 3 && VALUES[dealerCardRank] <= 6) return 'D';
+            if (canDoubleCurrent && VALUES[dealerCardRank] >= 3 && VALUES[dealerCardRank] <= 6) return 'D';
             return 'H';
         }
         // A,5 (16) ; A,4 (15)
         if (playerValue === 16 || playerValue === 15) {
-            if (canDouble && VALUES[dealerCardRank] >= 4 && VALUES[dealerCardRank] <= 6) return 'D';
+            if (canDoubleCurrent && VALUES[dealerCardRank] >= 4 && VALUES[dealerCardRank] <= 6) return 'D';
             return 'H';
         }
         // A,3 (14) ; A,2 (13)
         if (playerValue === 14 || playerValue === 13) {
-            if (canDouble && VALUES[dealerCardRank] >= 5 && VALUES[dealerCardRank] <= 6) return 'D';
+            if (canDoubleCurrent && VALUES[dealerCardRank] >= 5 && VALUES[dealerCardRank] <= 6) return 'D';
             return 'H';
         }
     }
@@ -410,25 +534,25 @@ export const useBlackjackGame = () => {
         return (VALUES[dealerCardRank] >= 2 && VALUES[dealerCardRank] <= 6) ? 'S' : 'H';
     }
     if (playerValue === 12) return (VALUES[dealerCardRank] >= 4 && VALUES[dealerCardRank] <= 6) ? 'S' : 'H';
-    if (playerValue === 11) return canDouble ? 'D' : 'H';
-    if (playerValue === 10) return (canDouble && VALUES[dealerCardRank] >= 2 && VALUES[dealerCardRank] <= 9) ? 'D' : 'H';
-    if (playerValue === 9) return (canDouble && VALUES[dealerCardRank] >= 3 && VALUES[dealerCardRank] <= 6) ? 'D' : 'H';
+    if (playerValue === 11) return canDoubleCurrent ? 'D' : 'H';
+    if (playerValue === 10) return (canDoubleCurrent && VALUES[dealerCardRank] >= 2 && VALUES[dealerCardRank] <= 9) ? 'D' : 'H';
+    if (playerValue === 9) return (canDoubleCurrent && VALUES[dealerCardRank] >= 3 && VALUES[dealerCardRank] <= 6) ? 'D' : 'H';
     return 'H'; // 8 or less // GAME_RULES removed as it's a constant
   }, [calculateHandValue]);
 
   getOptimalPlayRef.current = getOptimalPlay;
 
   // Define these before logPlayerAction and action handlers
-  const currentPlayerHand = playerHands.length > 0 && currentHandIndex < playerHands.length ? playerHands[currentHandIndex] : null;
-  const playerCanHit = gameActive && currentPlayerHand && !currentPlayerHand.busted && !currentPlayerHand.stood && !currentPlayerHand.surrendered && calculateHandValue(currentPlayerHand.cards) < 21;
-  const playerCanStand = gameActive && currentPlayerHand && !currentPlayerHand.busted && !currentPlayerHand.stood && !currentPlayerHand.surrendered;
-  const playerCanDouble = gameActive && currentPlayerHand && currentPlayerHand.cards.length === 2 && !currentPlayerHand.busted && !currentPlayerHand.stood && !currentPlayerHand.surrendered &&
+  const currentPlayerHand: PlayerHand | null = playerHands.length > 0 && currentHandIndex < playerHands.length ? playerHands[currentHandIndex] : null;
+  const playerCanHit: boolean = !!(gameActive && currentPlayerHand && !currentPlayerHand.busted && !currentPlayerHand.stood && !currentPlayerHand.surrendered && calculateHandValue(currentPlayerHand.cards) < 21);
+  const playerCanStand: boolean = !!(gameActive && currentPlayerHand && !currentPlayerHand.busted && !currentPlayerHand.stood && !currentPlayerHand.surrendered);
+  const playerCanDouble: boolean = !!(gameActive && currentPlayerHand && currentPlayerHand.cards.length === 2 && !currentPlayerHand.busted && !currentPlayerHand.stood && !currentPlayerHand.surrendered &&
                           (!currentPlayerHand.splitFromPair || GAME_RULES.DOUBLE_AFTER_SPLIT_ALLOWED);
-  const playerCanSplit = gameActive && currentPlayerHand && currentPlayerHand.cards.length === 2 && currentPlayerHand.cards[0]?.rank === currentPlayerHand.cards[1]?.rank && playerHands.length < GAME_RULES.MAX_SPLIT_HANDS && !currentPlayerHand.busted && !currentPlayerHand.stood && !currentPlayerHand.surrendered;
-  const playerCanSurrender = gameActive && currentPlayerHand && canSurrenderGlobal && currentPlayerHand.cards.length === 2 && !currentPlayerHand.splitFromPair && !currentPlayerHand.busted && !currentPlayerHand.stood && !currentPlayerHand.surrendered;
+  const playerCanSplit: boolean = !!(gameActive && currentPlayerHand && currentPlayerHand.cards.length === 2 && currentPlayerHand.cards[0]?.rank === currentPlayerHand.cards[1]?.rank && playerHands.length < GAME_RULES.MAX_SPLIT_HANDS && !currentPlayerHand.busted && !currentPlayerHand.stood && !currentPlayerHand.surrendered);
+  const playerCanSurrender: boolean = !!(gameActive && currentPlayerHand && canSurrenderGlobal && currentPlayerHand.cards.length === 2 && !currentPlayerHand.splitFromPair && !currentPlayerHand.busted && !currentPlayerHand.stood && !currentPlayerHand.surrendered);
 
 
-  const logPlayerAction = useCallback((playerActionCode, cardDealt = null) => {
+  const logPlayerAction = useCallback((playerActionCode: string, cardDealt: Card | null = null): void => {
     setPlayerHands(prevPlayerHands => {
         const handFromStateBeforeThisLogUpdate = prevPlayerHands[currentHandIndex];
         if (!handFromStateBeforeThisLogUpdate || !dealerHand || dealerHand.length === 0) {
@@ -436,8 +560,8 @@ export const useBlackjackGame = () => {
             return prevPlayerHands;
         }
 
-        let handCardsForDecisionMaking;
-        let valueBeforeAction;
+        let handCardsForDecisionMaking: Card[];
+        let valueBeforeAction: number;
         let valueAfterAction;
 
         if ((playerActionCode === 'H' || playerActionCode === 'D') && cardDealt) {
@@ -472,7 +596,7 @@ export const useBlackjackGame = () => {
             valueBeforeAction = calculateHandValue(handCardsForDecisionMaking); // Recalculate
         }
 
-        const dealerUpCardToUse = hideDealerFirstCard ? dealerHand[1] : dealerHand[0];
+        const dealerUpCardToUse: Card | undefined = hideDealerFirstCard ? dealerHand[1] : dealerHand[0];
         if (!dealerUpCardToUse) {
             console.error("logPlayerAction (updater): Dealer up-card not available for optimal play.");
             return prevPlayerHands;
@@ -492,14 +616,16 @@ export const useBlackjackGame = () => {
             handCardsForDecisionMaking.length === 2 &&
             !handFromStateBeforeThisLogUpdate.splitFromPair; // Original canSurrenderGlobal is for the current hand state
 
-        const optimalAction = getOptimalPlayRef.current(
-            handCardsForDecisionMaking,
-            dealerUpCardToUse,
-            canSplitForDecision,
-            isDoubleEligibleForDecision,
-            canSurrenderForDecision
-        );
-
+        let optimalAction = 'Error'; // Default in case ref is null
+        if (getOptimalPlayRef.current) {
+            optimalAction = getOptimalPlayRef.current(
+                handCardsForDecisionMaking,
+                dealerUpCardToUse, // Already checked for undefined
+                canSplitForDecision,
+                isDoubleEligibleForDecision,
+                canSurrenderForDecision
+            );
+        }
         const wasCorrect = playerActionCode === optimalAction;
 
         // Update message and session stats from within this updater
@@ -516,7 +642,7 @@ export const useBlackjackGame = () => {
             incorrectMoves: !wasCorrect ? s.incorrectMoves + 1 : s.incorrectMoves,
         }));
 
-        const updatedHand = {
+        const updatedHand: PlayerHand = {
             ...handFromStateBeforeThisLogUpdate,
             actionsTakenLog: [
                 ...(handFromStateBeforeThisLogUpdate.actionsTakenLog || []),
@@ -524,7 +650,7 @@ export const useBlackjackGame = () => {
             ]
         };
         const newPlayerHands = [...prevPlayerHands];
-        newPlayerHands[currentHandIndex] = updatedHand;
+        newPlayerHands[currentHandIndex] = updatedHand as PlayerHand; // Ensure type
         return newPlayerHands;
     });
     setCanSurrenderGlobal(false); // Surrender is only for the first action on a hand
@@ -535,9 +661,9 @@ export const useBlackjackGame = () => {
   const dealerPlayLogic = useCallback(() => {
     setHideDealerFirstCard(false);
     setMessage("Dealer's turn...");
-    let localDealerHand = [...dealerHand]; // Use state at the moment of call
-    let localDeck = [...deck]; // Use state at the moment of call
-    let localDealerActionsLog = [...currentRoundDealerActionsLog]; // Start with any initial logs (e.g. reveal)
+    let localDealerHand: Card[] = [...dealerHand]; // Use state at the moment of call
+    let localDeck: Card[] = [...deck]; // Use state at the moment of call
+    let localDealerActionsLog: DealerActionLogEntry[] = [...currentRoundDealerActionsLog]; // Start with any initial logs (e.g. reveal)
 
     // Log initial reveal if not Blackjack and not already logged
     const dealerInitialValue = calculateHandValue(localDealerHand);
@@ -548,7 +674,7 @@ export const useBlackjackGame = () => {
     }
 
 
-    function performDealerHit() {
+    function performDealerHit(): void {
         let currentDealerValue = calculateHandValue(localDealerHand);
         // Dealer hits on 16 or less.
         // Dealer hits on soft 17 if GAME_RULES.DEALER_STANDS_ON_SOFT_17 is false.
@@ -590,7 +716,7 @@ export const useBlackjackGame = () => {
         }
     }
 
-    function finalizeDealerTurn() {
+    function finalizeDealerTurn(): void {
         setCurrentRoundDealerActionsLog(localDealerActionsLog); // Set final log for this round
         // setDealerHand(localDealerHand); // Already updated progressively
         // determineGameOutcome will use the latest dealerHand from state.
@@ -647,7 +773,7 @@ export const useBlackjackGame = () => {
     }
   }, [currentHandIndex, playerHands, dealerPlayLogic, setMessage, setCurrentHandIndex, setCanSurrenderGlobal]);
 
-  const hitHandler = useCallback(async () => { // Made async if logPlayerAction or other parts become async
+  const hitHandler = useCallback(async (): Promise<{ success: boolean; message: string }> => {
     if (!gameActive || !playerCanHit) return { success: false, message: "Cannot hit." };
 
     const { card, updatedDeck } = dealOneCard(deck);
@@ -668,7 +794,7 @@ export const useBlackjackGame = () => {
 
     setPlayerHands(prev => {
         const newHands = [...prev];
-        const currentHand = { ...newHands[currentHandIndex] };
+        const currentHand: PlayerHand = { ...newHands[currentHandIndex] };
         currentHand.cards = newCards; // newCards already includes the hit card
         // Bust/21 status will be set after logging and re-evaluation
         newHands[currentHandIndex] = currentHand;
@@ -682,10 +808,10 @@ export const useBlackjackGame = () => {
 
     // Now, check for bust or 21 based on the newHandValue
     if (newHandValue > 21) {
-        setPlayerHands(prev => prev.map((h, i) => i === currentHandIndex ? { ...h, busted: true, stood: true } : h));
+        setPlayerHands(prev => prev.map((h, i) => i === currentHandIndex ? { ...h, busted: true, stood: true } as PlayerHand : h));
         setMessage(`Hand ${currentHandIndex + 1} Busted!`);
     } else if (newHandValue === 21) {
-        setPlayerHands(prev => prev.map((h, i) => i === currentHandIndex ? { ...h, stood: true } : h));
+        setPlayerHands(prev => prev.map((h, i) => i === currentHandIndex ? { ...h, stood: true } as PlayerHand : h));
     } else {
         // Message is handled by logPlayerAction
     }
@@ -695,7 +821,7 @@ export const useBlackjackGame = () => {
   const standHandler = useCallback(() => {
     if (!gameActive || !playerCanStand) return;
     logPlayerAction('S'); // Log before state update that changes `stood`
-    setPlayerHands(prev => prev.map((h, i) => i === currentHandIndex ? { ...h, stood: true } : h));
+    setPlayerHands(prev => prev.map((h, i) => (i === currentHandIndex ? { ...h, stood: true } as PlayerHand : h)));
     // advanceToNextHandOrDealerTurn will be called, and it will see the `stood: true`
     // advanceToNextHandOrDealerTurn(); // Removed, useEffect will handle // advanceToNextHandOrDealerTurn removed from deps
   }, [gameActive, playerCanStand, currentHandIndex, logPlayerAction, setPlayerHands]);
@@ -711,7 +837,7 @@ export const useBlackjackGame = () => {
 
     setPlayerHands(prev => {
         const newHands = [...prev];
-        const currentHandUpdate = {
+        const currentHandUpdate: PlayerHand = {
             ...newHands[currentHandIndex],
             cards: newCards,
             doubled: true,
@@ -734,7 +860,7 @@ export const useBlackjackGame = () => {
   const surrenderHandler = useCallback(() => {
     if (!gameActive || !playerCanSurrender) return;
     logPlayerAction('R'); // Log before state update
-    setPlayerHands(prev => prev.map((h, i) => i === currentHandIndex ? { ...h, surrendered: true, stood: true, outcome: "Loss" } : h));
+    setPlayerHands(prev => prev.map((h, i) => (i === currentHandIndex ? { ...h, surrendered: true, stood: true, outcome: "Loss" } as PlayerHand : h)));
     // advanceToNextHandOrDealerTurn will be called, and it will see the `stood: true` and `surrendered: true`
     // advanceToNextHandOrDealerTurn(); // Removed, useEffect will handle // advanceToNextHandOrDealerTurn removed from deps
   }, [gameActive, playerCanSurrender, currentHandIndex, logPlayerAction, setPlayerHands]);
@@ -760,7 +886,7 @@ export const useBlackjackGame = () => {
         const card1Original = handToSplit.cards[0];
         const card2Original = handToSplit.cards[1];
 
-        const firstSplitHand = {
+        const firstSplitHand: PlayerHand = {
             ...handToSplit, // carry over initial bet etc. if implemented
             cards: [card1Original, newCardForHand1],
             splitFromPair: true,
@@ -769,7 +895,7 @@ export const useBlackjackGame = () => {
             actionsTakenLog: [] // Reset actions log for this new hand
         };
 
-        const secondSplitHand = {
+        const secondSplitHand: PlayerHand = {
             ...handToSplit,
             cards: [card2Original, newCardForHand2],
             splitFromPair: true,
@@ -840,13 +966,13 @@ export const useBlackjackGame = () => {
         // Determine the dealer's upcard for strategy purposes
         // If hideDealerFirstCard is true, dealerHand[0] is the hole card, dealerHand[1] is the upcard.
         // If hideDealerFirstCard is false, dealerHand[0] is the first card (now visible), effectively the upcard.
-        const dealerUpCardForStrategy = hideDealerFirstCard ? (dealerHand[1] || null) : (dealerHand[0] || null);
+        const dealerUpCardForStrategy: Card | undefined = hideDealerFirstCard ? dealerHand[1] : dealerHand[0];
 
         if (dealerUpCardForStrategy) {
             const params = getStrategyKeysForHighlight(
                 handToHighlight,
                 // Pass only the upcard for strategy guide, not the whole hand if one is hidden
-                [dealerUpCardForStrategy], // Always pass an array with the single upcard
+                [dealerUpCardForStrategy], 
                 false // We've already determined the upcard, so treat it as visible for the key generation
             );
             setHighlightParams(params);
@@ -858,7 +984,7 @@ export const useBlackjackGame = () => {
     }
   }, [gameActive, playerHands, currentHandIndex, dealerHand, hideDealerFirstCard, getStrategyKeysForHighlight]);
 
-  return {
+  const returnedValue: BlackjackGameHook = {
     playerHands, currentHandIndex, dealerHand, gameActive, message, hideDealerFirstCard,
     highlightParams, gameHistory, showHistoryModal, sessionStats,
     newGameHandler, hitHandler, standHandler, doubleHandler, splitHandler, surrenderHandler,
@@ -866,4 +992,5 @@ export const useBlackjackGame = () => {
     getHandScoreText,
     playerCanHit, playerCanStand, playerCanDouble, playerCanSplit, playerCanSurrender,
   };
+  return returnedValue;
 };

@@ -1,6 +1,17 @@
 import React from 'react';
 
-const Card = ({ card, hidden }) => {
+// We can use the Card type from useBlackjackGame if it's exported and suitable,
+// or define a local one specific to this component's needs.
+// For now, a local definition:
+interface CardData {
+  rank: string;
+  suit: string;
+}
+interface CardProps {
+  card?: CardData; // Card can be undefined for an empty slot
+  hidden?: boolean;
+}
+const CardComponent: React.FC<CardProps> = ({ card, hidden }) => {
   if (!card) {
     // Render a placeholder or nothing if card data is missing
     return <div className="card empty"></div>;
@@ -19,4 +30,4 @@ const Card = ({ card, hidden }) => {
   );
 };
 
-export default Card;
+export default CardComponent;

@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
 import { hardTotalsData, softTotalsData, pairSplittingData } from '../data/strategyData';
+import { HighlightParams } from '../hooks/useBlackjackGame'; // Import if you plan to use highlightParams
 
 // Helper function to render a strategy table
-const renderStrategyTable = (title, data, playerHandType) => {
+type PlayerHandType = 'pairs' | 'soft' | 'hard';
+
+interface StrategyGuideProps extends HighlightParams {} // Props for highlighting (currently unused in rendering logic)
+
+const renderStrategyTable = (title: string, data: { [key: string]: string }, playerHandType: PlayerHandType, highlightPlayerKey?: string | null, highlightDealerKey?: string | null) => {
     // Player hand values (rows) - customize as needed
-    const playerValues = playerHandType === 'pairs'
+    const playerValues: string[] = playerHandType === 'pairs'
         ? ['A,A', 'T,T', '9,9', '8,8', '7,7', '6,6', '5,5', '4,4', '3,3', '2,2']
         : playerHandType === 'soft'
             ? ['A,9', 'A,8', 'A,7', 'A,6', 'A,5', 'A,4', 'A,3', 'A,2']
@@ -12,12 +17,14 @@ const renderStrategyTable = (title, data, playerHandType) => {
 
     // Dealer card values (columns)
     const dealerValues = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'A'];
-
-    const strategyData = data; // Use the passed-in data directly
-
-    const getActionClass = (action) => {
+    
+    const getActionClass = (action: string): string => {
         if (!action) return '';
         return `bs-${action.toLowerCase()}`;
+    };
+    const isHighlighted = (playerVal: string, dealerVal: string): boolean => {
+        // Basic check, can be made more robust based on how keys are structured
+        return playerVal === highlightPlayerKey && dealerVal === highlightDealerKey;
     };
 
     return (
@@ -36,8 +43,9 @@ const renderStrategyTable = (title, data, playerHandType) => {
                             <td>{playerVal}</td>
                             {dealerValues.map(dealerVal => {
                                 const action = strategyData[`${playerVal}-${dealerVal}`] || '-'; // Default or placeholder
+                                const highlighted = isHighlighted(playerVal, dealerVal);
                                 return (
-                                    <td key={`${playerVal}-${dealerVal}`} className={`bs-action ${getActionClass(action)}`}>
+                                    <td key={`${playerVal}-${dealerVal}`} className={`bs-action ${getActionClass(action)} ${highlighted ? 'bs-highlight' : ''}`}>
                                         {action}
                                     </td>
                                 );
@@ -50,8 +58,10 @@ const renderStrategyTable = (title, data, playerHandType) => {
     );
 };
 
-const StrategyGuide = () => {
-    const [activeTab, setActiveTab] = useState('hard'); // 'hard', 'soft', 'pairs'
+const StrategyGuide: React.FC<StrategyGuideProps> = ({ highlightType, highlightPlayerKey, highlightDealerKey }) => {
+    const [activeTab, setActiveTab] = useState<PlayerHandType>('hard');
+
+    const getTableHighlightKeys = (tableType: PlayerHandType) => highlightType === tableType ? { playerKey: highlightPlayerKey, dealerKey: highlightDealerKey } : {};
 
     return (
         <div id="strategy-guide-container">
@@ -79,13 +89,13 @@ const StrategyGuide = () => {
             </div>
 
             <div className={`tab-content ${activeTab === 'hard' ? 'active' : ''}`}>
-                {renderStrategyTable("Hard Totals", hardTotalsData, "hard")}
+                {renderStrategyTable("Hard Totals", hardTotalsData, "hard", getTableHighlightKeys('hard').playerKey, getTableHighlightKeys('hard').dealerKey)}
             </div>
             <div className={`tab-content ${activeTab === 'soft' ? 'active' : ''}`}>
-                {renderStrategyTable("Soft Totals", softTotalsData, "soft")}
+                {renderStrategyTable("Soft Totals", softTotalsData, "soft", getTableHighlightKeys('soft').playerKey, getTableHighlightKeys('soft').dealerKey)}
             </div>
             <div className={`tab-content ${activeTab === 'pairs' ? 'active' : ''}`}>
-                {renderStrategyTable("Pair Splitting", pairSplittingData, "pairs")}
+                {renderStrategyTable("Pair Splitting", pairSplittingData, "pairs", getTableHighlightKeys('pairs').playerKey, getTableHighlightKeys('pairs').dealerKey)}
             </div>
 
             <div style={{ marginTop: '20px', fontSize: '0.8em', textAlign: 'center' }}>

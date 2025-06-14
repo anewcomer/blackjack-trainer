@@ -1,4 +1,4 @@
-export const hardTotalsData = {
+export const hardTotalsData: { [key: string]: string } = {
     // Player 5-7
     '5-7-2': 'H', '5-7-3': 'H', '5-7-4': 'H', '5-7-5': 'H', '5-7-6': 'H', '5-7-7': 'H', '5-7-8': 'H', '5-7-9': 'H', '5-7-T': 'H', '5-7-A': 'H',
     // Player 8
@@ -23,7 +23,7 @@ export const hardTotalsData = {
     '17+-2': 'S', '17+-3': 'S', '17+-4': 'S', '17+-5': 'S', '17+-6': 'S', '17+-7': 'S', '17+-8': 'S', '17+-9': 'S', '17+-T': 'S', '17+-A': 'S',
 };
 
-export const softTotalsData = {
+export const softTotalsData: { [key: string]: string } = {
     // Player A,2 (Soft 13)
     'A,2-2': 'H', 'A,2-3': 'H', 'A,2-4': 'H', 'A,2-5': 'D', 'A,2-6': 'D', 'A,2-7': 'H', 'A,2-8': 'H', 'A,2-9': 'H', 'A,2-T': 'H', 'A,2-A': 'H',
     // Player A,3 (Soft 14)
@@ -42,7 +42,7 @@ export const softTotalsData = {
     'A,9-2': 'S', 'A,9-3': 'S', 'A,9-4': 'S', 'A,9-5': 'S', 'A,9-6': 'S', 'A,9-7': 'S', 'A,9-8': 'S', 'A,9-9': 'S', 'A,9-T': 'S', 'A,9-A': 'S',
 };
 
-export const pairSplittingData = {
+export const pairSplittingData: { [key: string]: string } = {
     // Player A,A
     'A,A-2': 'P', 'A,A-3': 'P', 'A,A-4': 'P', 'A,A-5': 'P', 'A,A-6': 'P', 'A,A-7': 'P', 'A,A-8': 'P', 'A,A-9': 'P', 'A,A-T': 'P', 'A,A-A': 'P',
     // Player T,T (10,J,Q,K)

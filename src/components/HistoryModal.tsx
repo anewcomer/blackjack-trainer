@@ -1,7 +1,16 @@
 import React from 'react';
 import './HistoryModal.css';
+import { GameHistoryEntry, SessionStats, PlayerHandHistoryForModal } from '../hooks/useBlackjackGame'; // Import core types
 
-const formatAction = (actionLog) => {
+interface ActionLogForModal {
+  action: string;
+  cardDealt?: string | null; // cardDealt is string | null in PlayerHandHistoryForModal
+  valueBefore: number;
+  valueAfter: number;
+  correct?: boolean;
+  optimal?: string;
+}
+const formatAction = (actionLog: ActionLogForModal): string => {
   let text = `${actionLog.action}`;
   if (actionLog.cardDealt) text += ` (${actionLog.cardDealt})`;
   text += ` [Val: ${actionLog.valueBefore} → ${actionLog.valueAfter}]`;
@@ -9,7 +18,13 @@ const formatAction = (actionLog) => {
   return text;
 };
 
-const formatDealerAction = (actionLog) => {
+interface DealerActionLogForModal {
+    action: string;
+    cardDealt?: string | null; // cardDealt is string | null in GameHistoryEntry.dealerActions
+    valueBefore: number; // valueBefore is present in GameHistoryEntry.dealerActions
+    valueAfter: number;
+}
+const formatDealerAction = (actionLog: DealerActionLogForModal): string => {
     let text = `${actionLog.action}`;
     if (actionLog.cardDealt) text += ` (${actionLog.cardDealt})`;
     if (actionLog.action !== 'Reveal' && actionLog.action !== 'Blackjack!') { // Blackjack and Reveal don't always have before/after change
@@ -20,18 +35,25 @@ const formatDealerAction = (actionLog) => {
     return text;
 };
 
+interface HistoryModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  history: GameHistoryEntry[];
+  stats: SessionStats;
+  onNewSession: () => void;
+}
 
-const HistoryModal = ({ isOpen, onClose, history, stats, onNewSession }) => {
+const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, history, stats, onNewSession }) => {
   if (!isOpen) {
     return null;
   }
 
-  const calculatePercentage = (value, total) => {
+  const calculatePercentage = (value: number, total: number): string => {
     if (total === 0) return '0%';
     return ((value / total) * 100).toFixed(1) + '%';
   };
 
-  const renderPlayerHandHistory = (playerHand, handIndex) => (
+  const renderPlayerHandHistory = (playerHand: PlayerHandHistoryForModal, handIndex: number) => (
     <div key={`player-hand-${handIndex}`} className="history-player-hand-details">
       <p><strong>Player Hand {handIndex + 1}:</strong> Initial: {playerHand.initialCards}, Final: {playerHand.finalCards} (Score: {playerHand.finalScore}{playerHand.busted ? " BUST" : ""}{playerHand.surrendered ? " SURRENDER" : ""}), Outcome: {playerHand.outcome} {playerHand.isBlackjack ? "(Blackjack)" : ""}</p>
       {playerHand.actions.length > 0 && <h5>Actions:</h5>}
@@ -43,7 +65,7 @@ const HistoryModal = ({ isOpen, onClose, history, stats, onNewSession }) => {
 
   return (
     <div className="modal-overlay" onClick={onClose} aria-modal="true" role="dialog">
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content" onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}>
         <button className="modal-close-button" onClick={onClose} aria-label="Close history modal">
           &times;
         </button>
