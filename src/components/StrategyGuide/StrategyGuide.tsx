@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
-import { hardTotalsData, softTotalsData, pairSplittingData } from '../data/strategyData';
-import { HighlightParams } from '../hooks/useBlackjackGame'; // Import if you plan to use highlightParams
+import React, { useState, useEffect } from 'react';
+import { hardTotalsData, softTotalsData, pairSplittingData } from '../../data/strategyData';
+import './StrategyGuide.css';
 
 // Helper function to render a strategy table
 type PlayerHandType = 'pairs' | 'soft' | 'hard';
 
-interface StrategyGuideProps extends HighlightParams {} // Props for highlighting (currently unused in rendering logic)
+interface StrategyGuideProps {
+  highlightType: 'hard' | 'soft' | 'pairs' | null;
+  highlightPlayerKey: string | null;
+  highlightDealerKey: string | null;
+} // Props for highlighting (currently unused in rendering logic)
 
 const renderStrategyTable = (title: string, data: { [key: string]: string }, playerHandType: PlayerHandType, highlightPlayerKey?: string | null, highlightDealerKey?: string | null) => {
     // Player hand values (rows) - customize as needed
@@ -16,8 +20,9 @@ const renderStrategyTable = (title: string, data: { [key: string]: string }, pla
             : ['17+', '16', '15', '14', '13', '12', '11', '10', '9', '8', '5-7']; // Hard totals
 
     // Dealer card values (columns)
-    const dealerValues = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'A'];
-    
+    const dealerValues: string[] = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'A'];
+    const strategyData = data;
+
     const getActionClass = (action: string): string => {
         if (!action) return '';
         return `bs-${action.toLowerCase()}`;
@@ -61,12 +66,19 @@ const renderStrategyTable = (title: string, data: { [key: string]: string }, pla
 const StrategyGuide: React.FC<StrategyGuideProps> = ({ highlightType, highlightPlayerKey, highlightDealerKey }) => {
     const [activeTab, setActiveTab] = useState<PlayerHandType>('hard');
 
+    // Automatically switch to the correct tab when highlightType changes
+    useEffect(() => {
+        if (highlightType === 'hard' || highlightType === 'soft' || highlightType === 'pairs') {
+            setActiveTab(highlightType);
+        }
+    }, [highlightType]);
+
     const getTableHighlightKeys = (tableType: PlayerHandType) => highlightType === tableType ? { playerKey: highlightPlayerKey, dealerKey: highlightDealerKey } : {};
 
     return (
-        <div id="strategy-guide-container">
-            <h3>Basic Strategy Guide</h3>
-            <p>Dealer stands on soft 17. Double after split allowed.</p>
+        <div id="strategy-guide-container" className="bs-table">
+            <h3>Basic Strategy Reference (H17, DAS)</h3>
+            <p>S: Stand, H: Hit, D: Double Down, P: Split, R: Surrender (R/H means Surrender if allowed, else Hit)</p>
             <div className="tab-buttons">
                 <button
                     className={`tab-button ${activeTab === 'hard' ? 'active' : ''}`}
@@ -84,7 +96,7 @@ const StrategyGuide: React.FC<StrategyGuideProps> = ({ highlightType, highlightP
                     className={`tab-button ${activeTab === 'pairs' ? 'active' : ''}`}
                     onClick={() => setActiveTab('pairs')}
                 >
-                    Pair Splitting
+                    Pairs
                 </button>
             </div>
 
@@ -95,7 +107,7 @@ const StrategyGuide: React.FC<StrategyGuideProps> = ({ highlightType, highlightP
                 {renderStrategyTable("Soft Totals", softTotalsData, "soft", getTableHighlightKeys('soft').playerKey, getTableHighlightKeys('soft').dealerKey)}
             </div>
             <div className={`tab-content ${activeTab === 'pairs' ? 'active' : ''}`}>
-                {renderStrategyTable("Pair Splitting", pairSplittingData, "pairs", getTableHighlightKeys('pairs').playerKey, getTableHighlightKeys('pairs').dealerKey)}
+                {renderStrategyTable("Pairs", pairSplittingData, "pairs", getTableHighlightKeys('pairs').playerKey, getTableHighlightKeys('pairs').dealerKey)}
             </div>
 
             <div style={{ marginTop: '20px', fontSize: '0.8em', textAlign: 'center' }}>

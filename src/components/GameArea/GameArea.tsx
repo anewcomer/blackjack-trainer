@@ -1,6 +1,7 @@
 import React from 'react';
-import CardComponent from './Card'; // Assuming Card.tsx exports CardComponent
-import { Card as CardType, PlayerHand as PlayerHandType } from '../hooks/useBlackjackGame'; // Import core types
+import './GameArea.css';
+import CardComponent from '../Card/Card';
+import { Card as CardType, PlayerHand as PlayerHandType } from '../../logic/types';
 
 interface GameAreaProps {
   dealerHand: CardType[];
@@ -24,7 +25,7 @@ const GameArea: React.FC<GameAreaProps> = ({ dealerHand, playerHands, currentHan
       {renderCards(hand, hidden)}
       <div className="score">
         {score !== null ? `Score: ${score}` : ''}
-        {isPlayer && totalHands > 1 && ` (Hand ${handIndex + 1}/${totalHands})`}
+        {isPlayer && totalHands != null && totalHands > 1 && handIndex != null && ` (Hand ${handIndex + 1}/${totalHands})`}
       </div>
     </div>
   );

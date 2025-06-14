@@ -1,8 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import './App.css'; // Import global styles
-import App from './App';
+import './components/App/App.css'; // Import global styles
+import App from './components/App/App';
 import reportWebVitals from './reportWebVitals';
 
 const rootElement = document.getElementById('root');

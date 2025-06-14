@@ -1,0 +1,43 @@
+/* GameArea component-specific styles */
+.game-area {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: flex-start;
+  margin-bottom: 2em;
+  gap: 20px;
+}
+.dealer-area, .player-area {
+  background: #23272f;
+  border-radius: 10px;
+  padding: 18px 20px 10px 20px;
+  margin-bottom: 1.5em;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  flex: 1 1 0;
+  min-width: 0;
+}
+.dealer-area h2, .player-area h2 {
+  margin-top: 0;
+  color: #61dafb;
+}
+.score {
+  font-size: 1.8em;
+  font-weight: bold;
+  color: #61dafb;
+  margin-top: auto;
+}
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  min-height: 110px;
+}
+
+@media (max-width: 900px) {
+  .game-area {
+    flex-direction: column;
+    gap: 0;
+  }
+}

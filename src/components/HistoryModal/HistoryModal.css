@@ -24,10 +24,12 @@
     overflow-y: auto;
     position: relative;
     box-shadow: 0 10px 30px rgba(0,0,0,0.7); /* Match from index.html */
+    display: flex;
+    flex-direction: column;
   }
   
   .modal-close-button {
-    position: absolute;
+    position: sticky;
     top: 10px;
     right: 20px; /* Match from index.html */
     background: none;
@@ -38,16 +40,22 @@
     cursor: pointer;
     color: #aaa; /* Match from index.html */
     transition: color 0.3s ease; /* Match from index.html */
+    z-index: 3;
   }
   .modal-close-button:hover {
     color: #e0e0e0; /* Match from index.html */
   }
   
   .modal-content h2 {
+    position: sticky;
+    top: 0;
+    background: #1a1e24;
+    z-index: 2;
     margin-top: 0;
     margin-bottom: 15px;
     color: #61dafb; /* Match from index.html */
     text-align: center;
+    padding-top: 10px;
   }
   
   .history-log {
@@ -77,3 +85,30 @@
   
   /* Styles for player/dealer details and session stats are already in App.css */
   /* but can be moved here if desired for full component encapsulation */
+  
+  #history-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 15px;
+  }
+  #history-table th, #history-table td {
+    border: 1px solid #444;
+    padding: 8px 6px;
+    text-align: center;
+    font-size: 0.85em;
+  }
+  #history-table th {
+    background-color: #333;
+    color: #61dafb;
+    font-size: 0.9em;
+  }
+  #history-table tr:nth-child(even) {
+    background-color: #222;
+  }
+  #history-table td.action-correct { color: #81C784; }
+  #history-table td.action-mistake { color: #FFB74D; }
+  
+  #history-log-container {
+    overflow-y: auto;
+    max-height: 60vh;
+  }

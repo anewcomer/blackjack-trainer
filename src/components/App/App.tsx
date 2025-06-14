@@ -1,10 +1,11 @@
 import './App.css';
+import '../BlackjackTrainerLayout/BlackjackTrainerLayout.css';
 import React from 'react';
-import GameArea from './components/GameArea';
-import Actions from './components/Actions';
-import StrategyGuide from './components/StrategyGuide';
-import HistoryModal from './components/HistoryModal';
-import { useBlackjackGame, BlackjackGameHook } from './hooks/useBlackjackGame';
+import GameArea from '../GameArea/GameArea';
+import Actions from '../Actions/Actions';
+import StrategyGuide from '../StrategyGuide/StrategyGuide';
+import HistoryModal from '../HistoryModal/HistoryModal';
+import { useBlackjackGame } from '../../hooks/useBlackjackGame';
 
 const App: React.FC = () => {
   const {

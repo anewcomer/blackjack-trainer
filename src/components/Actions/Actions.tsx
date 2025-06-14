@@ -1,4 +1,5 @@
 import React from 'react';
+import './Actions.css';
 
 interface ActionsProps {
   onNewGame: () => void;
