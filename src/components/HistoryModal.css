@@ -1,0 +1,79 @@
+/* --- History Modal Styles --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Ensure it's on top */
+  }
+  
+  .modal-content {
+    background-color: #1a1e24; /* Match game-container from index.html */
+    color: #e0e0e0; /* Match text color from index.html */
+    padding: 25px;
+    border-radius: 15px; /* Match from index.html */
+    min-width: 320px;
+    max-width: 900px; /* Match from index.html */
+    width: 85%; /* Match from index.html */
+    max-height: 85vh; /* Adjusted for better fit */
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.7); /* Match from index.html */
+  }
+  
+  .modal-close-button {
+    position: absolute;
+    top: 10px;
+    right: 20px; /* Match from index.html */
+    background: none;
+    border: none;
+    font-size: 30px; /* Match from index.html */
+    font-weight: bold; /* Match from index.html */
+    line-height: 1;
+    cursor: pointer;
+    color: #aaa; /* Match from index.html */
+    transition: color 0.3s ease; /* Match from index.html */
+  }
+  .modal-close-button:hover {
+    color: #e0e0e0; /* Match from index.html */
+  }
+  
+  .modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #61dafb; /* Match from index.html */
+    text-align: center;
+  }
+  
+  .history-log {
+    list-style-type: none;
+    padding: 0;
+    max-height: 50vh; /* Limit height of the log itself */
+    overflow-y: auto;
+    border: 1px solid #444; /* Similar to history table border */
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .history-entry {
+    padding: 10px 0;
+    border-bottom: 1px solid #333;
+    font-size: 0.9em;
+  }
+  
+  .history-entry:last-child {
+    border-bottom: none;
+  }
+  
+  .history-entry strong {
+    color: #61dafb; /* Highlight timestamps or key info */
+  }
+  
+  /* Styles for player/dealer details and session stats are already in App.css */
+  /* but can be moved here if desired for full component encapsulation */
