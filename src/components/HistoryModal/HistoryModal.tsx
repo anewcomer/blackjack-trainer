@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -14,24 +14,86 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import DownloadIcon from '@mui/icons-material/Download';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
-import { GameHistoryEntry, SessionStats, PlayerHandHistoryForModal } from '../../logic/blackjackTypes';
+import { useBlackjack } from '../../context/BlackjackContext';
+import { GameHistoryEntry, PlayerHandHistoryForModal } from '../../logic/game/historyTypes';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import useFocusTrap from '../../hooks/useFocusTrap';
 
-interface HistoryModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  history: GameHistoryEntry[];
-  stats: SessionStats;
-  onNewSession: () => void;
-}
+/**
+ * HistoryModal component that displays the game history and session statistics
+ * Enhanced with accessibility features and keyboard navigation
+ */
+const HistoryModal: React.FC = () => {
+  const {
+    showHistoryModal: isOpen,
+    closeHistoryModalHandler: onClose,
+    gameHistory: history,
+    sessionStats: stats,
+    resetSessionStats,
+    newGameHandler
+  } = useBlackjack();
 
-const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, history, stats, onNewSession }) => {
+  // Reference to the dialog content for focus trap
+  const dialogRef = useRef<HTMLDivElement>(null);
+  
+  // Reference to focus on close button when modal opens
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Apply focus trap to dialog
+  useFocusTrap(isOpen, dialogRef);
+
+  // Focus the close button when modal opens
+  useEffect(() => {
+    if (isOpen && closeButtonRef.current) {
+      setTimeout(() => {
+        closeButtonRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen]);
+
+  // Handle Escape key to close modal
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (isOpen && event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [isOpen, onClose]);
+
+  const onNewSession = () => {
+    resetSessionStats();
+    newGameHandler();
+    onClose();
+  };
+
+  // Generate a descriptive title for the game history entry
+  const getEntryDescription = (entry: GameHistoryEntry, index: number) => {
+    const date = new Date(entry.timestamp).toLocaleDateString();
+    const time = new Date(entry.timestamp).toLocaleTimeString();
+    const outcome = entry.playerHands[0]?.outcome || 'Unknown';
+    return `Game ${index + 1} played on ${date} at ${time}, outcome: ${outcome}`;
+  };
+
   // Helper to format actions as a list
   const formatActionsLogForDisplay = (actionsLogArray: PlayerHandHistoryForModal['actions']) => {
     if (!actionsLogArray || actionsLogArray.length === 0) return <span>N/A</span>;
     return (
-      <ul style={{ margin: 0, paddingLeft: '1.2em', textAlign: 'left' }}>
+      <ul 
+        style={{ margin: 0, paddingLeft: '1.2em', textAlign: 'left' }}
+        aria-label="Player actions"
+      >
         {actionsLogArray.map((log, idx) => (
-          <li key={idx} style={{ color: log.correct ? '#388e3c' : '#e65100' }}>
+          <li 
+            key={idx} 
+            style={{ color: log.correct ? '#388e3c' : '#e65100' }}
+            aria-label={`${log.action} ${log.cardDealt ? 'receiving ' + log.cardDealt : ''}, hand value from ${log.valueBefore} to ${log.valueAfter}, ${log.correct ? 'correct play' : 'mistake, optimal play was ' + log.optimal}`}
+          >
             {log.action} {log.cardDealt ? `(${log.cardDealt})` : ''} [Val: {log.valueBefore} → {log.valueAfter}] {log.correct ? '(Correct)' : `(Mistake! Optimal: ${log.optimal})`}
           </li>
         ))}
@@ -40,12 +102,18 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, history, s
   };
 
   // Helper to format dealer actions
-  const formatDealerActionsForDisplay = (dealerActionsLogArray: GameHistoryEntry['dealerActions']) => {
+  const formatDealerActionsForDisplay = (dealerActionsLogArray: Array<{action: string; cardDealt?: string | null; valueBefore: number; valueAfter: number}>) => {
     if (!dealerActionsLogArray || dealerActionsLogArray.length === 0) return <span>N/A</span>;
     return (
-      <ul style={{ margin: 0, paddingLeft: 0, listStylePosition: 'inside', textAlign: 'left' }}>
-        {dealerActionsLogArray.map((log, idx) => (
-          <li key={idx}>
+      <ul 
+        style={{ margin: 0, paddingLeft: 0, listStylePosition: 'inside', textAlign: 'left' }}
+        aria-label="Dealer actions"
+      >
+        {dealerActionsLogArray.map((log, idx: number) => (
+          <li 
+            key={idx}
+            aria-label={`${log.action} ${log.cardDealt ? 'receiving ' + log.cardDealt : ''}, hand value from ${log.valueBefore} to ${log.valueAfter}`}
+          >
             {log.action} {log.cardDealt ? `(${log.cardDealt})` : ''} [Val: {log.valueBefore} → {log.valueAfter}]
           </li>
         ))}
@@ -75,11 +143,11 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, history, s
     
     const csvRows = [headers.join(',')];
     
-    history.forEach(entry => {
+    history.forEach((entry) => {
       entry.playerHands.forEach((hand, handIndex) => {
-        const actions = hand.actions.map(a => `${a.action}${a.cardDealt ? ' (' + a.cardDealt + ')' : ''}`).join('; ');
-        const wasCorrect = hand.actions.map(a => a.correct ? 'Yes' : 'No').join('; ');
-        const optimalPlays = hand.actions.map(a => a.optimal).join('; ');
+        const actions = hand.actions.map((a) => `${a.action}${a.cardDealt ? ' (' + a.cardDealt + ')' : ''}`).join('; ');
+        const wasCorrect = hand.actions.map((a) => a.correct ? 'Yes' : 'No').join('; ');
+        const optimalPlays = hand.actions.map((a) => a.optimal).join('; ');
         
         const row = [
           `"${new Date(entry.timestamp).toLocaleString()}"`,
@@ -92,8 +160,8 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, history, s
           `"${optimalPlays}"`,
           `"${entry.dealerUpCard}"`,
           `"${entry.dealerFinalCards}"`,
-          entry.dealerFinalScore + (entry.dealerBusted ? ' BUST' : '') + (entry.dealerBlackjackOnInit ? ' BJ' : ''),
-          `"${hand.outcome || ''}"`
+          entry.dealerFinalScore,
+          hand.outcome
         ];
         
         csvRows.push(row.join(','));
@@ -103,119 +171,187 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, history, s
     return csvRows.join('\n');
   };
 
-  // Handler for the download button
-  const handleDownloadCSV = () => {
+  // Download history as CSV file
+  const downloadCSV = () => {
     const csvContent = convertHistoryToCSV();
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    if (!csvContent) return;
     
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    
+    // Create a download link
+    const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `blackjack-history-${timestamp}.csv`);
+    link.setAttribute('download', `blackjack_history_${new Date().toISOString().slice(0, 10)}.csv`);
     link.style.visibility = 'hidden';
+    
+    // Add to document, click and remove
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
+  // Calculate statistics for display
+  const totalHands = stats.correctMoves + stats.incorrectMoves;
+  const correctPercentage = calculatePercentage(stats.correctMoves, totalHands);
+  const winsPercentage = calculatePercentage(stats.wins, stats.wins + stats.losses + stats.pushes);
+
   return (
-    <Dialog open={isOpen} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle sx={{ m: 0, p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-          Game History
-          <Button 
-            variant="outlined" 
-            size="small" 
-            startIcon={<RestartAltIcon />}
-            onClick={onNewSession}
-            sx={{ ml: 2 }}
-          >
-            New Session
-          </Button>
-          <Button 
-            variant="outlined" 
-            size="small" 
-            startIcon={<DownloadIcon />}
-            onClick={handleDownloadCSV}
-            disabled={history.length === 0}
-            sx={{ ml: 1 }}
-          >
-            Download CSV
-          </Button>
-        </span>
-        <IconButton aria-label="close" onClick={onClose} sx={{ ml: 2 }}>
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
-      <DialogContent dividers>
-        <TableContainer component={Paper}>
-          <Table id="history-table" size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Time</TableCell>
-                <TableCell>Hand(s)</TableCell>
-                <TableCell>Actions</TableCell>
-                <TableCell>Dealer</TableCell>
-                <TableCell>Result</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {history.length === 0 ? (
-                <TableRow><TableCell colSpan={5}>No game history yet. Start a new game!</TableCell></TableRow>
-              ) : (
-                history.slice().reverse().map(entry => (
-                  <TableRow key={entry.id}>
-                    <TableCell>{new Date(entry.timestamp).toLocaleString()}</TableCell>
-                    <TableCell>
-                      {entry.playerHands.map((ph, idx) => (
-                        <div key={idx}>
-                          <strong>Hand {idx + 1}:</strong> {formatCardsForDisplay(ph.initialCards)} → {formatCardsForDisplay(ph.finalCards)} (Score: {ph.finalScore}{ph.busted ? ' BUST' : ''}{ph.surrendered ? ' SURRENDER' : ''}{ph.isBlackjack ? ' (Blackjack)' : ''})
-                        </div>
-                      ))}
-                    </TableCell>
-                    <TableCell>
-                      {entry.playerHands.map((ph, idx) => (
-                        <div key={idx}>{formatActionsLogForDisplay(ph.actions)}</div>
-                      ))}
-                    </TableCell>
-                    <TableCell>
-                      <div>Upcard: {entry.dealerUpCard}</div>
-                      <div>Hole: {entry.dealerHoleCard}</div>
-                      <div>Final: {entry.dealerFinalCards} (Score: {entry.dealerFinalScore}{entry.dealerBusted ? ' BUST' : ''}{entry.dealerBlackjackOnInit ? ' (Blackjack)' : ''})</div>
-                      {formatDealerActionsForDisplay(entry.dealerActions)}
-                    </TableCell>
-                    <TableCell>
-                      {entry.playerHands.map((ph, idx) => (
-                        <div key={idx}>{ph.outcome}</div>
-                      ))}
-                    </TableCell>
+    <Dialog 
+      open={isOpen} 
+      onClose={onClose}
+      fullWidth
+      maxWidth="md"
+      aria-labelledby="history-dialog-title"
+      aria-describedby="history-dialog-description"
+    >
+      <div ref={dialogRef}>
+        <DialogTitle 
+          id="history-dialog-title"
+          sx={{ m: 0, p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+        >
+          <Typography variant="h6" component="span">Game History</Typography>
+          
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button 
+              variant="outlined" 
+              color="primary" 
+              onClick={downloadCSV}
+              startIcon={<DownloadIcon />}
+              disabled={history.length === 0}
+              aria-label="Download history as CSV file"
+            >
+              Export CSV
+            </Button>
+            <Button 
+              variant="outlined" 
+              color="warning" 
+              onClick={onNewSession}
+              startIcon={<RestartAltIcon />}
+              aria-label="Start a new session and reset statistics"
+            >
+              New Session
+            </Button>
+            <IconButton
+              edge="end"
+              onClick={onClose}
+              aria-label="Close dialog"
+              ref={closeButtonRef}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        
+        <DialogContent dividers>
+          {/* Session Statistics */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" gutterBottom>Session Statistics</Typography>
+            <TableContainer component={Paper} elevation={2}>
+              <Table size="small" aria-label="Session statistics table">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Metric</TableCell>
+                    <TableCell align="right">Value</TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </DialogContent>
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '12px 24px',
-        borderTop: '1px solid #eee',
-        background: 'inherit', // inherit modal background
-        fontSize: '0.98rem',
-        flexWrap: 'wrap',
-        gap: '2.5em',
-        boxShadow: '0px 2px 8px 0px rgba(60,60,60,0.04)',
-      }}>
-        <span><span style={{ color: '#388e3c', fontWeight: 500 }}>Correct:</span> <strong>{stats.correctMoves}</strong> <span style={{ color: '#aaa' }}>({calculatePercentage(stats.correctMoves, stats.totalDecisions)})</span></span>
-        <span><span style={{ color: '#d32f2f', fontWeight: 500 }}>Incorrect:</span> <strong>{stats.incorrectMoves}</strong> <span style={{ color: '#aaa' }}>({calculatePercentage(stats.incorrectMoves, stats.totalDecisions)})</span></span>
-        <span><span style={{ fontWeight: 500 }}>Decisions:</span> <strong>{stats.totalDecisions}</strong></span>
-        <span><span style={{ color: '#388e3c', fontWeight: 500 }}>Wins:</span> <strong>{stats.wins}</strong> <span style={{ color: '#aaa' }}>({calculatePercentage(stats.wins, stats.handsPlayed)})</span></span>
-        <span><span style={{ color: '#d32f2f', fontWeight: 500 }}>Losses:</span> <strong>{stats.losses}</strong> <span style={{ color: '#aaa' }}>({calculatePercentage(stats.losses, stats.handsPlayed)})</span></span>
-        <span><span style={{ color: '#1976d2', fontWeight: 500 }}>Pushes:</span> <strong>{stats.pushes}</strong> <span style={{ color: '#aaa' }}>({calculatePercentage(stats.pushes, stats.handsPlayed)})</span></span>
-        <span><span style={{ fontWeight: 500 }}>Hands Played:</span> <strong>{stats.handsPlayed}</strong></span>
+                </TableHead>
+                <TableBody>
+                  <TableRow>
+                    <TableCell component="th" scope="row">Hands Played</TableCell>
+                    <TableCell align="right">{stats.handsPlayed}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell component="th" scope="row">Win Rate</TableCell>
+                    <TableCell align="right">{winsPercentage} ({stats.wins} / {stats.wins + stats.losses + stats.pushes})</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell component="th" scope="row">Correct Decisions</TableCell>
+                    <TableCell align="right">{correctPercentage} ({stats.correctMoves} / {totalHands})</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell component="th" scope="row">Total Wins</TableCell>
+                    <TableCell align="right">{stats.wins}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell component="th" scope="row">Total Losses</TableCell>
+                    <TableCell align="right">{stats.losses}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell component="th" scope="row">Total Pushes</TableCell>
+                    <TableCell align="right">{stats.pushes}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
+
+          {/* Game History */}
+          <Typography variant="h6" gutterBottom>Hand History</Typography>
+          
+          {history.length === 0 ? (
+            <Box sx={{ textAlign: 'center', p: 3 }} role="status">
+              <Typography variant="body1">No game history yet. Play a few hands to see them here!</Typography>
+            </Box>
+          ) : (
+            <TableContainer component={Paper} sx={{ mb: 3 }}>
+              <Table size="small" aria-label="Game history table">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Time</TableCell>
+                    <TableCell>Player Cards</TableCell>
+                    <TableCell>Player Actions</TableCell>
+                    <TableCell>Dealer Cards</TableCell>
+                    <TableCell>Outcome</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {history.map((entry, idx) => (
+                    entry.playerHands.map((ph, phIdx) => (
+                      <TableRow 
+                        key={`${entry.id}-${phIdx}`}
+                        hover
+                        aria-label={getEntryDescription(entry, idx)}
+                      >
+                        <TableCell>
+                          {new Date(entry.timestamp).toLocaleTimeString()}
+                          {phIdx === 0 && <Typography variant="caption" display="block">{new Date(entry.timestamp).toLocaleDateString()}</Typography>}
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ fontFamily: 'monospace' }}>
+                            <div><strong>Initial:</strong> {formatCardsForDisplay(ph.initialCards)}</div>
+                            <div><strong>Final:</strong> {formatCardsForDisplay(ph.finalCards)}</div>
+                            <div><strong>Value:</strong> {ph.finalScore}{ph.busted ? ' (BUST)' : ''}{ph.isBlackjack ? ' (BLACKJACK)' : ''}</div>
+                          </Box>
+                        </TableCell>
+                        <TableCell>{formatActionsLogForDisplay(ph.actions)}</TableCell>
+                        <TableCell>
+                          <Box sx={{ fontFamily: 'monospace' }}>
+                            <div><strong>Up Card:</strong> {formatCardsForDisplay(entry.dealerUpCard)}</div>
+                            <div><strong>Final:</strong> {formatCardsForDisplay(entry.dealerFinalCards)}</div>
+                            <div><strong>Value:</strong> {entry.dealerFinalScore}</div>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ 
+                            display: 'inline-block', 
+                            fontWeight: 'bold',
+                            color: ph.outcome === 'Win' ? '#388e3c' : ph.outcome === 'Loss' ? '#d32f2f' : '#ff9800',
+                            px: 1,
+                            py: 0.5,
+                            borderRadius: 1,
+                            bgcolor: ph.outcome === 'Win' ? 'rgba(76, 175, 80, 0.1)' : ph.outcome === 'Loss' ? 'rgba(244, 67, 54, 0.1)' : 'rgba(255, 152, 0, 0.1)',
+                          }}>
+                            {ph.outcome}
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </DialogContent>
       </div>
     </Dialog>
   );

@@ -7,37 +7,34 @@ import CallSplitIcon from '@mui/icons-material/CallSplit';
 import FlagIcon from '@mui/icons-material/Flag';
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import HistoryIcon from '@mui/icons-material/History';
+import { useBlackjack } from '../../context/BlackjackContext';
 
-interface ActionsProps {
-  onNewGame: () => void;
-  onHit: () => void;
-  onStand: () => void;
-  onDouble: () => void;
-  onSplit: () => void;
-  onSurrender: () => void;
-  onShowHistory: () => void;
-  playerCanHit: boolean;
-  playerCanStand: boolean;
-  playerCanDouble: boolean;
-  playerCanSplit: boolean;
-  playerCanSurrender: boolean;
-}
-const Actions: React.FC<ActionsProps> = ({
-  onNewGame,
-  onHit,
-  onStand,
-  onDouble,
-  onSplit,
-  onSurrender,
-  onShowHistory,
-  playerCanHit,
-  playerCanStand,
-  playerCanDouble,
-  playerCanSplit,
-  playerCanSurrender,
-}) => {
+/**
+ * Actions component that displays all game action buttons
+ * Enhanced with full accessibility support
+ */
+const Actions: React.FC = () => {
+  const {
+    newGameHandler: onNewGame,
+    hitHandler: onHit,
+    standHandler: onStand,
+    doubleHandler: onDouble,
+    splitHandler: onSplit,
+    surrenderHandler: onSurrender,
+    showHistoryHandler: onShowHistory,
+    playerCanHit,
+    playerCanStand,
+    playerCanDouble,
+    playerCanSplit,
+    playerCanSurrender,
+  } = useBlackjack();
+
   return (
-    <Box sx={{ my: 2, display: 'flex', flexDirection: 'column', gap: 1, width: '100%' }}>
+    <Box 
+      sx={{ my: 2, display: 'flex', flexDirection: 'column', gap: 1, width: '100%' }}
+      role="group"
+      aria-label="Game actions"
+    >
       {/* Game action buttons - first row */}
       <Stack 
         direction="row" 
@@ -52,6 +49,8 @@ const Actions: React.FC<ActionsProps> = ({
           },
           gap: 1
         }}
+        role="toolbar"
+        aria-label="Player actions"
       >
         <Button 
           variant="contained" 
@@ -60,6 +59,8 @@ const Actions: React.FC<ActionsProps> = ({
           disabled={!playerCanHit}
           startIcon={<AddIcon />}
           fullWidth
+          aria-label="Hit"
+          aria-disabled={!playerCanHit}
         >
           Hit
         </Button>
@@ -70,6 +71,8 @@ const Actions: React.FC<ActionsProps> = ({
           disabled={!playerCanStand}
           startIcon={<PanToolIcon />}
           fullWidth
+          aria-label="Stand"
+          aria-disabled={!playerCanStand}
         >
           Stand
         </Button>
@@ -80,6 +83,8 @@ const Actions: React.FC<ActionsProps> = ({
           disabled={!playerCanDouble}
           startIcon={<Filter2Icon />}
           fullWidth
+          aria-label="Double down"
+          aria-disabled={!playerCanDouble}
         >
           Double
         </Button>
@@ -90,6 +95,8 @@ const Actions: React.FC<ActionsProps> = ({
           disabled={!playerCanSplit}
           startIcon={<CallSplitIcon />}
           fullWidth
+          aria-label="Split hand"
+          aria-disabled={!playerCanSplit}
         >
           Split
         </Button>
@@ -100,6 +107,8 @@ const Actions: React.FC<ActionsProps> = ({
           disabled={!playerCanSurrender}
           startIcon={<FlagIcon />}
           fullWidth
+          aria-label="Surrender hand"
+          aria-disabled={!playerCanSurrender}
         >
           Surrender
         </Button>
@@ -120,6 +129,8 @@ const Actions: React.FC<ActionsProps> = ({
           maxWidth: { xs: '100%', sm: '80%', md: '60%' },
           mx: 'auto'
         }}
+        role="toolbar"
+        aria-label="Game controls"
       >
         <Button 
           variant="outlined" 
@@ -127,6 +138,7 @@ const Actions: React.FC<ActionsProps> = ({
           onClick={onNewGame}
           startIcon={<PlayCircleOutlineIcon />}
           fullWidth
+          aria-label="Start new game"
         >
           New Game
         </Button>
@@ -136,6 +148,7 @@ const Actions: React.FC<ActionsProps> = ({
           onClick={onShowHistory}
           startIcon={<HistoryIcon />}
           fullWidth
+          aria-label="Show game history"
         >
           Show History
         </Button>

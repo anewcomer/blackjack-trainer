@@ -3,85 +3,106 @@ import GameArea from '../GameArea/GameArea';
 import Actions from '../Actions/Actions';
 import StrategyGuide from '../StrategyGuide/StrategyGuide';
 import HistoryModal from '../HistoryModal/HistoryModal';
-import { useBlackjackGame } from '../../hooks/useBlackjackGame';
+import { BlackjackProvider } from '../../context/BlackjackContext';
 import { Box, Container, Typography } from '@mui/material';
+import useKeyboardNavigation from '../../hooks/useKeyboardNavigation';
 
-const App: React.FC = () => {
-  const {
-    playerHands,
-    currentHandIndex,
-    dealerHand,
-    gameActive,
-    message,
-    hideDealerFirstCard,
-    highlightParams,
-    gameHistory,
-    showHistoryModal,
-    sessionStats,
-    newGameHandler,
-    hitHandler,
-    standHandler,
-    doubleHandler,
-    splitHandler,
-    surrenderHandler,
-    showHistoryHandler,
-    closeHistoryModalHandler,
-    resetSessionStats,
-    getHandScoreText,
-    playerCanHit,
-    playerCanStand,
-    playerCanDouble,
-    playerCanSplit,
-    playerCanSurrender,
-  } = useBlackjackGame();
-  
+/**
+ * Main application content component that uses the Blackjack context
+ * Enhanced with proper semantic HTML and accessibility features
+ */
+const AppContent: React.FC = () => {
+  // Add keyboard navigation support
+  useKeyboardNavigation();
+
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', py: 4 }}>
+    <Box 
+      component="main"
+      sx={{ minHeight: '100vh', bgcolor: 'background.default', py: 4 }}
+    >
       <Container maxWidth="lg" sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
-        <Box sx={{ display: 'flex', flexDirection: 'row', flex: 1, minHeight: 500, gap: 3 }}>
-          <Box sx={{ flex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}>
-            <Typography variant="h3" component="h1" gutterBottom align="center">
-              Blackjack Trainer
-            </Typography>
-            <GameArea
-              dealerHand={dealerHand}
-              playerHands={playerHands}
-              currentHandIndex={currentHandIndex}
-              hideDealerFirstCard={hideDealerFirstCard}
-              getHandScoreText={getHandScoreText}
-              gameActive={gameActive}
-              message={message}
-              recentAction={playerHands[currentHandIndex]?.actionsTakenLog?.slice(-1)[0]}
-            />
-            <Actions
-              onNewGame={newGameHandler}
-              onHit={hitHandler}
-              onStand={standHandler}
-              onDouble={doubleHandler}
-              onSplit={splitHandler}
-              onSurrender={surrenderHandler}
-              onShowHistory={showHistoryHandler}
-              playerCanHit={playerCanHit} playerCanStand={playerCanStand} playerCanDouble={playerCanDouble}
-              playerCanSplit={playerCanSplit} playerCanSurrender={playerCanSurrender}
-            />
+        {/* Skip to main content link for keyboard users */}
+        <a href="#game-content" className="skip-link">
+          Skip to game content
+        </a>
+        
+        <Typography 
+          variant="h3" 
+          component="h1" 
+          gutterBottom 
+          align="center"
+          sx={{ mb: 3 }}
+        >
+          Blackjack Trainer
+        </Typography>
+        
+        <Box 
+          id="game-content"
+          sx={{ 
+            display: 'flex', 
+            flexDirection: { xs: 'column', md: 'row' }, 
+            flex: 1, 
+            minHeight: 500, 
+            gap: 3 
+          }}
+          tabIndex={-1} // Makes it focusable for skip link without affecting tab order
+        >
+          <Box 
+            component="section"
+            sx={{ 
+              flex: 2, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              justifyContent: 'flex-start' 
+            }}
+            aria-label="Game play area"
+          >
+            <GameArea />
+            <Actions />
           </Box>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <StrategyGuide
-              highlightType={highlightParams.type}
-              highlightPlayerKey={highlightParams.playerKey}
-              highlightDealerKey={highlightParams.dealerKey}
-            />
+          
+          <Box 
+            component="aside"
+            sx={{ flex: 1, minWidth: 0 }}
+            aria-label="Strategy guide"
+          >
+            <StrategyGuide />
           </Box>
         </Box>
-        <HistoryModal
-          isOpen={showHistoryModal}
-          onClose={closeHistoryModalHandler}
-          history={gameHistory}
-          stats={sessionStats}
-          onNewSession={() => { resetSessionStats(); newGameHandler(); }}
-        />
+        
+        {/* The modal is controlled separately */}
+        <HistoryModal />
+        
+        {/* Footer with accessibility information */}
+        <Box 
+          component="footer" 
+          sx={{ 
+            mt: 4, 
+            pt: 2, 
+            borderTop: '1px solid', 
+            borderColor: 'divider', 
+            textAlign: 'center' 
+          }}
+        >
+          <Typography variant="body2" color="text.secondary">
+            Keyboard shortcuts: 'H' - Hit, 'S' - Stand, 'D' - Double, 'P' - Split, 'R' - Surrender, 'N' - New Game, 'I' - History
+          </Typography>
+        </Box>
       </Container>
     </Box>
   );
-}
+};
+
+/**
+ * Main App component that provides the Blackjack context
+ */
+const App: React.FC = () => {
+  return (
+    <BlackjackProvider>
+      <AppContent />
+    </BlackjackProvider>
+  );
+};
+
 export default App;

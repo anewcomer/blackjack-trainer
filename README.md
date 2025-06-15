@@ -1,70 +1,107 @@
-# Getting Started with Create React App
+# Blackjack Trainer
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A React-based application for learning optimal Blackjack strategy through interactive play and feedback.
 
-## Available Scripts
+![Blackjack Trainer Screenshot](screenshot.png)
 
-In the project directory, you can run:
+## 🎮 Features
 
-### `npm start`
+- **Interactive Gameplay**: Play hands of blackjack with a simulated dealer
+- **Strategy Training**: Get real-time feedback on your decisions
+- **Strategy Guide**: Visual guide showing the optimal play for every situation
+- **Game History**: Track your gameplay history and statistics
+- **Performance Stats**: See how well you're following optimal strategy
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## 🎯 Purpose
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+This application is designed to help players learn optimal blackjack strategy through practice. The trainer provides immediate feedback on each decision, helping users understand why certain plays are better in specific situations.
 
-### `npm test`
+## 🚀 Getting Started
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Prerequisites
 
-### `npm run build`
+- Node.js (v16 or higher)
+- npm (v8 or higher)
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### Installation
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+1. Clone the repository:
+   ```
+   git clone https://github.com/anewcomer/blackjack-trainer.git
+   cd blackjack-trainer
+   ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+2. Install dependencies:
+   ```
+   npm install
+   ```
 
-### `npm run eject`
+3. Start the development server:
+   ```
+   npm start
+   ```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+4. Open [http://localhost:3000](http://localhost:3000) to view the app in your browser.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## 📝 How to Play
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+1. Click "New Game" to start a hand
+2. Make decisions using the action buttons:
+   - **Hit**: Take another card
+   - **Stand**: Keep your current hand
+   - **Double**: Double your bet and take exactly one more card
+   - **Split**: If you have a pair, split them into two separate hands
+   - **Surrender**: Give up half your bet and end the hand
+3. The strategy guide on the right highlights the optimal play
+4. The trainer will inform you if your play matched optimal strategy
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## 🧠 Game Rules
 
-## Learn More
+- Dealer stands on soft 17
+- Doubling after split is allowed
+- Up to 4 split hands allowed
+- Surrender is available on the initial hand only
+- 8-deck shoe with continuous shuffling
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## 📊 Strategy Basics
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+The optimal blackjack strategy differs based on three main hand types:
+1. **Hard hands**: Hands without an Ace or with an Ace counted as 1
+2. **Soft hands**: Hands with an Ace counted as 11
+3. **Pairs**: Initial two-card hands with matching ranks
 
-### Code Splitting
+## 🛠️ Development
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### Available Scripts
 
-### Analyzing the Bundle Size
+- `npm start`: Run the app in development mode
+- `npm test`: Run the test suite
+- `npm run build`: Build the app for production
+- `npm run lint`: Run ESLint on the codebase
+- `npm run lint fix`: Automatically fix linting issues where possible
+- `npm run deploy`: Deploy the app to GitHub Pages
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### Project Structure
 
-### Making a Progressive Web App
+```
+src/
+├── components/     # React components
+├── context/        # React context providers
+├── hooks/          # Custom React hooks
+├── logic/          # Game logic and utilities
+│   ├── game/       # Core game mechanics
+│   ├── strategy/   # Strategy algorithms
+│   └── utils/      # Helper functions
+├── themes/         # UI theming
+└── index.tsx       # Application entry point
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## 📜 License
 
-### Advanced Configuration
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## 🙏 Acknowledgements
 
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- [Blackjack Strategy Charts](https://www.blackjackapprenticeship.com/blackjack-strategy-charts/) for strategy reference
+- [Material-UI](https://mui.com/) for UI components
+- [React](https://reactjs.org/) for the UI framework

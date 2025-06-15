@@ -1,0 +1,68 @@
+/* Accessibility CSS */
+
+/* Visually hidden elements (visible to screen readers only) */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Skip link styling */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  color: white;
+  background-color: #1976d2;
+  padding: 8px;
+  z-index: 100;
+  transition: top 0.3s;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Focus indication for keyboard users */
+:focus-visible {
+  outline: 3px solid #1976d2;
+  outline-offset: 2px;
+}
+
+/* Enhanced button focus states */
+button:focus-visible {
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.5);
+}
+
+/* High contrast mode support */
+@media (forced-colors: active) {
+  .card {
+    border: 2px solid CanvasText;
+  }
+  
+  .active-element {
+    border: 2px solid Highlight;
+  }
+}
+
+/* Reduce motion for users with vestibular disorders */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Improve text color contrast */
+.high-contrast-text {
+  color: #000000;
+  background-color: #ffffff;
+  text-shadow: none;
+}

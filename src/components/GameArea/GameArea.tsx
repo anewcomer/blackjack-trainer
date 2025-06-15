@@ -1,29 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import CardComponent from '../Card/Card';
-import { Card as CardType, PlayerHand as PlayerHandType, ActionLogEntry } from '../../logic/blackjackTypes';
+import { Card as CardType } from '../../logic/game/cardTypes';
+import { ActionLogEntry } from '../../logic/game/gameTypes';
+import { useBlackjack } from '../../context/BlackjackContext';
 import { Box, Typography, Paper, Fade } from '@mui/material';
 
-interface GameAreaProps {
-  dealerHand: CardType[];
-  playerHands: PlayerHandType[];
-  currentHandIndex: number;
-  hideDealerFirstCard: boolean;
-  getHandScoreText: (handCards: CardType[]) => string;
-  gameActive: boolean;
-  message: string;
-  recentAction?: ActionLogEntry;
-}
+/**
+ * GameArea component that renders the dealer and player cards
+ * Enhanced with accessibility features
+ */
+const GameArea: React.FC = () => {
+  const {
+    dealerHand,
+    playerHands,
+    currentHandIndex,
+    hideDealerFirstCard,
+    getHandScoreText,
+    gameActive,
+    message
+  } = useBlackjack();
 
-const GameArea: React.FC<GameAreaProps> = ({ 
-  dealerHand, 
-  playerHands, 
-  currentHandIndex, 
-  hideDealerFirstCard, 
-  getHandScoreText,
-  gameActive,
-  message,
-  recentAction
-}) => {
+  // Get the recent action from the current player hand if available
+  const recentAction: ActionLogEntry | undefined = playerHands[currentHandIndex]?.actionsTakenLog?.slice(-1)[0];
+
   // State for visual feedback effects
   const [playerFlash, setPlayerFlash] = useState<'correct' | 'mistake' | null>(null);
   const [activeArea, setActiveArea] = useState<'player' | 'dealer' | null>(null);
@@ -100,7 +99,12 @@ const GameArea: React.FC<GameAreaProps> = ({
   }, [message, statusMessage]);
 
   const renderCards = (hand: CardType[], hidden: boolean = false) => (
-    <Box sx={{ display: 'flex', gap: 1, my: 1 }} aria-live="polite">
+    <Box 
+      sx={{ display: 'flex', gap: 1, my: 1 }} 
+      aria-live="polite"
+      role="group"
+      aria-label={`Cards in hand, ${hand.length} total`}
+    >
       {hand.map((card, idx) => (
         <CardComponent key={card.id || idx} card={card} hidden={hidden && idx === 0} />
       ))}
@@ -154,6 +158,24 @@ const GameArea: React.FC<GameAreaProps> = ({
       }
     }
 
+    // Create descriptive title for accessibility
+    const areaLabel = isPlayer ? 
+      `Player's hand${totalHands && totalHands > 1 ? `, hand ${handIndex! + 1} of ${totalHands}` : ''}` : 
+      'Dealer\'s hand';
+    
+    // Add score information for screen readers
+    const scoreLabel = score ? `Score: ${score}` : 'No cards';
+    
+    // Create dynamic status description based on game state
+    let statusDescription = '';
+    if (isPlayer && playerFlash === 'correct') statusDescription = 'Correct move';
+    if (isPlayer && playerFlash === 'mistake') statusDescription = 'Incorrect move';
+    if (isPlayer && activeArea === 'player') statusDescription = 'Your turn to play';
+    if (!isPlayer && activeArea === 'dealer') statusDescription = 'Dealer is playing';
+    if (isPlayer && winnerArea === 'player') statusDescription = 'You won';
+    if (!isPlayer && winnerArea === 'dealer') statusDescription = 'Dealer won';
+    if (winnerArea === 'push') statusDescription = 'Push, it\'s a tie';
+
     return (
       <Paper 
         elevation={elevation} 
@@ -179,6 +201,9 @@ const GameArea: React.FC<GameAreaProps> = ({
             '100%': { boxShadow: '0 0 0 0 rgba(25, 118, 210, 0)' }
           }
         }}
+        role="region"
+        aria-label={areaLabel}
+        aria-live={activeArea === (isPlayer ? 'player' : 'dealer') ? 'polite' : 'off'}
       >
         <Typography variant="h6">
           {title}
@@ -188,24 +213,42 @@ const GameArea: React.FC<GameAreaProps> = ({
         </Typography>
         
         {hand && hand.length > 0 ? renderCards(hand, hidden) :
-          <Box sx={{ height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }} />
+          <Box 
+            sx={{ height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}
+            aria-label="No cards dealt yet"
+          />
         }
         
-        <Typography variant="body1" sx={{ mt: 1, fontWeight: 'medium' }}>
+        <Typography 
+          variant="body1" 
+          sx={{ mt: 1, fontWeight: 'medium' }}
+          aria-live="polite"
+        >
           {score !== null ? `Score: ${score}` : ''}
         </Typography>
+
+        {/* Hidden text for screen readers describing the current state */}
+        {statusDescription && (
+          <span className="visually-hidden" aria-live="polite" style={{ position: 'absolute', height: '1px', width: '1px', overflow: 'hidden' }}>
+            {statusDescription}
+          </span>
+        )}
       </Paper>
     );
   };
 
-  const currentPlayerHand: PlayerHandType | null = (playerHands && playerHands.length > 0 && currentHandIndex < playerHands.length)
+  const currentPlayerHand = (playerHands && playerHands.length > 0 && currentHandIndex < playerHands.length)
     ? playerHands[currentHandIndex]
     : null;
 
   const dealerScore = (hideDealerFirstCard && dealerHand.length > 0) ? '?' : (dealerHand.length > 0 ? getHandScoreText(dealerHand) : null);
 
   return (
-    <Box sx={{ width: '100%', my: 2 }}>
+    <Box 
+      sx={{ width: '100%', my: 2 }}
+      role="main"
+      aria-label="Blackjack game area"
+    >
       <Box sx={{ display: 'flex', flexDirection: 'row', gap: 3, justifyContent: 'center', alignItems: 'flex-start' }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           {renderHandArea('Dealer', dealerHand && dealerHand.length > 0 ? dealerHand : null, dealerScore, hideDealerFirstCard)}
@@ -227,6 +270,8 @@ const GameArea: React.FC<GameAreaProps> = ({
               fontWeight: 'bold',
               color: 'text.primary'
             }}
+            role="status"
+            aria-live="assertive"
           >
             <Typography variant="body1">{statusMessage}</Typography>
           </Box>

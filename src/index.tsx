@@ -4,6 +4,7 @@ import App from './components/App/App';
 import reportWebVitals from './reportWebVitals';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import darkTheme from './themes/darkTheme';
+import './themes/accessibility.css'; // Import accessibility CSS
 
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('Failed to find the root element');

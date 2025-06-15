@@ -1,15 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { hardTotalsData, softTotalsData, pairSplittingData } from '../../data/strategyData';
+import { useBlackjack } from '../../context/BlackjackContext';
 import { Box, Tabs, Tab, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 
 // Helper function to render a strategy table
 type PlayerHandType = 'pairs' | 'soft' | 'hard';
-
-interface StrategyGuideProps {
-  highlightType: 'hard' | 'soft' | 'pairs' | null;
-  highlightPlayerKey: string | null;
-  highlightDealerKey: string | null;
-} // Props for highlighting (currently unused in rendering logic)
 
 const actionColors: Record<string, string> = {
   S: 'success.light', // Stand
@@ -101,8 +96,10 @@ const condensedLegend =
     </Typography>
   </Box>;
 
-const StrategyGuide: React.FC<StrategyGuideProps> = ({ highlightType, highlightPlayerKey, highlightDealerKey }) => {
+const StrategyGuide: React.FC = () => {
     const [activeTab, setActiveTab] = useState<PlayerHandType>('hard');
+    const { highlightParams } = useBlackjack();
+    const { type: highlightType, playerKey: highlightPlayerKey, dealerKey: highlightDealerKey } = highlightParams;
     
     // For debugging
     useEffect(() => {
