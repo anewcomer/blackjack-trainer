@@ -183,10 +183,14 @@ Implementation details:
 ## Future Improvements
 
 ### Testing
-- ⬜ Add unit tests for utility functions
-- ⬜ Add component tests
+- ✅ Add unit tests for utility functions
+- ✅ Add component tests
+- ✅ Add unit tests for game hooks and logic
+- ⬜ Add additional component tests for complex UI components
 - ⬜ Add integration tests for game flow
 - ⬜ Add accessibility testing
+- ⬜ Add end-to-end browser tests (planned for future)
+- ⬜ Add browser tests (planned for later)
 
 ### Animation Enhancements
 - ⬜ Add dealer card flip animation when hand is complete

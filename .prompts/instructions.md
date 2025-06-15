@@ -111,6 +111,12 @@ Let's start by documenting this feature in the README.md, then implement the cod
 
 Define the feature in documentation first to clarify requirements and usage before implementation.
 
+### 9. Saving Progress
+
+When a new feature is requested, add this to the project plan contained in [notes](./notes.md).
+
+When there has been significant progress made on any project feature, update the [notes](./notes.md) document with relevant status so that future Copilot sessions may pick up the context where it was left off.
+
 ## Finding Help
 
 If you need assistance with specific GitHub Copilot features or encounter issues:

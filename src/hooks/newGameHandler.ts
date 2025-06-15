@@ -1,4 +1,3 @@
-import { useCallback } from 'react';
 import { 
   Card, 
   PlayerHand 
@@ -29,7 +28,7 @@ export const createNewGameHandler = (
   getStrategyKeysForHighlight: Function,
   dealerHand: Card[]
 ) => {
-  return useCallback(() => {
+  return function() {
     // Create a new deck and shuffle it
     const newDeck = shuffleDeck(createNewDeck());
     console.log("New game started with shuffled deck");
@@ -227,5 +226,5 @@ export const createNewGameHandler = (
       setHideDealerFirstCard, setCanSurrenderGlobal, setMessage, setHighlightParams,
       setCurrentRoundDealerActionsLog, determineGameOutcome
     };
-  }, [setDeck, setPlayerHands, setDealerHand, setCurrentHandIndex, setMessage, setGameActive, setHideDealerFirstCard, setCanSurrenderGlobal, setCurrentRoundDealerActionsLog, determineGameOutcome, setHighlightParams, dealerHand, getStrategyKeysForHighlight]);
+  };
 };
