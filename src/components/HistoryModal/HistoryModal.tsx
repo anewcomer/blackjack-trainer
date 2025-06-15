@@ -4,6 +4,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
+import Button from '@mui/material/Button';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -11,8 +12,9 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
+import DownloadIcon from '@mui/icons-material/Download';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { GameHistoryEntry, SessionStats, PlayerHandHistoryForModal } from '../../logic/blackjackTypes';
-import ModalLink from './ModalLink';
 
 interface HistoryModalProps {
   isOpen: boolean;
@@ -60,14 +62,87 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, history, s
     return ((value / total) * 100).toFixed(1) + '%';
   };
 
+  // Helper to convert game history to CSV format
+  const convertHistoryToCSV = (): string => {
+    if (!history.length) return '';
+
+    // CSV header
+    const headers = [
+      'Time', 'Hand Number', 'Initial Cards', 'Final Cards', 'Final Score', 
+      'Actions', 'Was Correct', 'Optimal Play', 'Dealer Upcard', 'Dealer Final Cards',
+      'Dealer Score', 'Outcome'
+    ];
+    
+    const csvRows = [headers.join(',')];
+    
+    history.forEach(entry => {
+      entry.playerHands.forEach((hand, handIndex) => {
+        const actions = hand.actions.map(a => `${a.action}${a.cardDealt ? ' (' + a.cardDealt + ')' : ''}`).join('; ');
+        const wasCorrect = hand.actions.map(a => a.correct ? 'Yes' : 'No').join('; ');
+        const optimalPlays = hand.actions.map(a => a.optimal).join('; ');
+        
+        const row = [
+          `"${new Date(entry.timestamp).toLocaleString()}"`,
+          handIndex + 1,
+          `"${hand.initialCards}"`,
+          `"${hand.finalCards}"`,
+          hand.finalScore + (hand.busted ? ' BUST' : '') + (hand.surrendered ? ' SURRENDER' : '') + (hand.isBlackjack ? ' BJ' : ''),
+          `"${actions}"`,
+          `"${wasCorrect}"`,
+          `"${optimalPlays}"`,
+          `"${entry.dealerUpCard}"`,
+          `"${entry.dealerFinalCards}"`,
+          entry.dealerFinalScore + (entry.dealerBusted ? ' BUST' : '') + (entry.dealerBlackjackOnInit ? ' BJ' : ''),
+          `"${hand.outcome || ''}"`
+        ];
+        
+        csvRows.push(row.join(','));
+      });
+    });
+    
+    return csvRows.join('\n');
+  };
+
+  // Handler for the download button
+  const handleDownloadCSV = () => {
+    const csvContent = convertHistoryToCSV();
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `blackjack-history-${timestamp}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <Dialog open={isOpen} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle sx={{ m: 0, p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
           Game History
-          <ModalLink onClick={onNewSession} sx={{ ml: 2 }}>
+          <Button 
+            variant="outlined" 
+            size="small" 
+            startIcon={<RestartAltIcon />}
+            onClick={onNewSession}
+            sx={{ ml: 2 }}
+          >
             New Session
-          </ModalLink>
+          </Button>
+          <Button 
+            variant="outlined" 
+            size="small" 
+            startIcon={<DownloadIcon />}
+            onClick={handleDownloadCSV}
+            disabled={history.length === 0}
+            sx={{ ml: 1 }}
+          >
+            Download CSV
+          </Button>
         </span>
         <IconButton aria-label="close" onClick={onClose} sx={{ ml: 2 }}>
           <CloseIcon />
