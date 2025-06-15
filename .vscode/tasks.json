@@ -13,27 +13,6 @@
 		},
 		{
 			"type": "shell",
-			"label": "Start dev server",
-			"command": "npm start",
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"presentation": {
-				"reveal": "always",
-				"panel": "dedicated",
-				"clear": true
-			},
-			"problemMatcher": [],
-			"isBackground": true,
-			"options": {
-				"env": {
-					"BROWSER": "none" // Prevents opening the browser automatically
-				}
-			}
-		},
-		{
-			"type": "shell",
 			"label": "Run lint",
 			"command": "npm run lint",
 			"group": {
@@ -52,17 +31,15 @@
 		},
 		{
 			"type": "shell",
-			"label": "Run lint fix",
-			"command": "npx eslint --fix 'src/**/*.{js,jsx,ts,tsx}'",
+			"label": "Run tests once",
+			"command": "npm test -- --watchAll=false",
 			"group": "test",
 			"presentation": {
 				"reveal": "always",
 				"panel": "dedicated",
 				"clear": true
 			},
-			"problemMatcher": [
-				"$eslint-stylish"
-			],
+			"problemMatcher": [],
 			"isBackground": false
 		}
 	]

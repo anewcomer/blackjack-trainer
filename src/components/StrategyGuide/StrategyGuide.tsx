@@ -1,15 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { hardTotalsData, softTotalsData, pairSplittingData } from '../../data/strategyData';
+import { useBlackjack } from '../../context/BlackjackContext';
 import { Box, Tabs, Tab, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 
 // Helper function to render a strategy table
 type PlayerHandType = 'pairs' | 'soft' | 'hard';
-
-interface StrategyGuideProps {
-  highlightType: 'hard' | 'soft' | 'pairs' | null;
-  highlightPlayerKey: string | null;
-  highlightDealerKey: string | null;
-} // Props for highlighting (currently unused in rendering logic)
 
 const actionColors: Record<string, string> = {
   S: 'success.light', // Stand
@@ -101,17 +96,23 @@ const condensedLegend =
     </Typography>
   </Box>;
 
-const StrategyGuide: React.FC<StrategyGuideProps> = ({ highlightType, highlightPlayerKey, highlightDealerKey }) => {
+const StrategyGuide: React.FC = () => {
     const [activeTab, setActiveTab] = useState<PlayerHandType>('hard');
+    const { highlightParams } = useBlackjack();
+    const { type: highlightType, playerKey: highlightPlayerKey, dealerKey: highlightDealerKey } = highlightParams;
     
     // For debugging
     useEffect(() => {
-        console.log(`StrategyGuide props: type=${highlightType}, player=${highlightPlayerKey}, dealer=${highlightDealerKey}`);
+        console.log(`StrategyGuide received: type=${highlightType}, player=${highlightPlayerKey}, dealer=${highlightDealerKey}`);
+        if (highlightType && highlightPlayerKey && highlightDealerKey) {
+            console.log("Should highlight a cell now");
+        }
     }, [highlightType, highlightPlayerKey, highlightDealerKey]);
 
     // Automatically switch to the correct tab when highlightType changes
     useEffect(() => {
         if (highlightType === 'hard' || highlightType === 'soft' || highlightType === 'pairs') {
+            console.log(`Switching strategy guide tab to: ${highlightType}`);
             setActiveTab(highlightType);
         }
     }, [highlightType]);

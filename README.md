@@ -1,70 +1,230 @@
-# Getting Started with Create React App
+# Blackjack Trainer
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A React-based application for learning optimal Blackjack strategy through interactive play and feedback.
 
-## Available Scripts
+![Blackjack Trainer Screenshot](screenshot.png)
 
-In the project directory, you can run:
+## 🎮 Features
 
-### `npm start`
+- **Interactive Gameplay**: Play hands of blackjack with a simulated dealer
+- **Strategy Training**: Get real-time feedback on your decisions
+- **Strategy Guide**: Visual guide showing the optimal play for every situation
+- **Game History**: Track your gameplay history and statistics
+- **Performance Stats**: See how well you're following optimal strategy
+- **Accessibility Support**: Full keyboard navigation, screen reader support, and focus management
+- **Responsive Design**: Optimized for desktop, tablet, and mobile devices
+- **Testing Tools**: Query parameter support for setting up specific game scenarios
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## 🎯 Purpose
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+This application is designed to help players learn optimal blackjack strategy through practice. The trainer provides immediate feedback on each decision, helping users understand why certain plays are better in specific situations.
 
-### `npm test`
+## 🚀 Getting Started
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Prerequisites
 
-### `npm run build`
+- Node.js (v16 or higher)
+- npm (v8 or higher)
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### Installation
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+1. Clone the repository:
+   ```
+   git clone https://github.com/anewcomer/blackjack-trainer.git
+   cd blackjack-trainer
+   ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+2. Install dependencies:
+   ```
+   npm install
+   ```
 
-### `npm run eject`
+3. Start the development server:
+   ```
+   npm start
+   ```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+4. Open [http://localhost:3000](http://localhost:3000) to view the app in your browser.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## 📝 How to Play
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+1. Click "New Game" to start a hand
+2. Make decisions using the action buttons:
+   - **Hit**: Take another card (Keyboard: H)
+   - **Stand**: Keep your current hand (Keyboard: S)
+   - **Double**: Double your bet and take exactly one more card (Keyboard: D)
+   - **Split**: If you have a pair, split them into two separate hands (Keyboard: P)
+   - **Surrender**: Give up half your bet and end the hand (Keyboard: R)
+3. The strategy guide on the right highlights the optimal play
+4. The trainer will inform you if your play matched optimal strategy
+5. View your game history and stats by clicking the "History" button (Keyboard: I)
+6. Start a new game at any time (Keyboard: N)
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## 🧠 Game Rules
 
-## Learn More
+- Dealer stands on soft 17
+- Doubling after split is allowed
+- Up to 4 split hands allowed
+- Surrender is available on the initial hand only
+- 8-deck shoe with continuous shuffling
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## 📊 Strategy Basics
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+The optimal blackjack strategy differs based on three main hand types:
+1. **Hard hands**: Hands without an Ace or with an Ace counted as 1
+2. **Soft hands**: Hands with an Ace counted as 11
+3. **Pairs**: Initial two-card hands with matching ranks
 
-### Code Splitting
+## 🦮 Accessibility Features
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+The Blackjack Trainer is designed to be accessible to users with diverse abilities:
 
-### Analyzing the Bundle Size
+### Keyboard Navigation
+- **Full keyboard support**: All actions can be performed without a mouse
+- **Keyboard shortcuts**: Quick access to common actions (see How to Play section)
+- **Focus management**: Clear focus indicators and logical tab order
+- **Skip link**: "Skip to content" link for keyboard users
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### Screen Reader Support
+- **Semantic HTML**: Proper document structure with semantic landmarks
+- **ARIA attributes**: Enhanced context for assistive technologies
+- **Live regions**: Dynamic updates announced to screen readers
+- **Text alternatives**: All visual elements have text descriptions
 
-### Making a Progressive Web App
+### Visual Enhancements
+- **High contrast support**: Compatible with high contrast mode
+- **Flexible text sizing**: Content remains usable when zoomed
+- **Color independence**: Information is not conveyed by color alone
+- **Reduced motion**: Respects user preferences for reduced motion
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### Tested With
+- NVDA and JAWS screen readers
+- Keyboard-only navigation
+- Various zoom levels and screen sizes
 
-### Advanced Configuration
+## 🔧 Technical Highlights
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+### React Architecture
+- **Context API**: Centralized state management using React Context
+- **Custom Hooks**: Modular, reusable hooks for specific functionalities
+- **Component Structure**: Logical separation of UI and business logic
 
-### Deployment
+### Performance Optimizations
+- **Memoization**: Strategic use of `useMemo` and `useCallback`
+- **React.memo**: Preventing unnecessary re-renders in pure components
+- **Batched Updates**: Grouped state updates to minimize render cycles
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+### Animation
+- **Card Animations**: Smooth animations for card dealing and flips
+- **Transition Effects**: Visual feedback for game state changes
+- **Reduced Motion Support**: Respects user preference for reduced motion
 
-### `npm run build` fails to minify
+### Code Quality
+- **TypeScript**: Strong typing throughout the application
+- **JSDoc Comments**: Comprehensive documentation of functions and components
+- **Modular Design**: Separated concerns for better maintainability
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## 🛠️ Development
+
+### Available Scripts
+
+- `npm start`: Run the app in development mode
+- `npm test`: Run the test suite
+- `npm run build`: Build the app for production
+- `npm run lint`: Run ESLint on the codebase
+- `npm run lint fix`: Automatically fix linting issues where possible
+- `npm run deploy`: Deploy the app to GitHub Pages
+
+### Project Structure
+
+```
+src/
+├── components/     # React components
+│   ├── Actions/    # Game action buttons
+│   ├── App/        # Main application component
+│   ├── Card/       # Card display component
+│   ├── GameArea/   # Game board and card areas
+│   ├── HistoryModal/ # Game history and statistics
+│   └── StrategyGuide/ # Strategy chart display
+├── context/        # React context providers
+│   └── BlackjackContext.tsx # Game state and actions provider
+├── hooks/          # Custom React hooks
+│   ├── useBlackjackGame.ts # Main game logic (legacy)
+│   ├── useFocusTrap.ts     # Accessibility focus management
+│   ├── useGameActions.ts   # Game actions (hit, stand, etc.)
+│   ├── useGameAreaEffects.ts # UI effects for game area
+│   ├── useGameHistory.ts   # History tracking and statistics
+│   ├── useGameState.ts     # Core game state management
+│   └── useKeyboardNavigation.ts # Keyboard shortcuts
+├── logic/          # Game logic and utilities
+│   ├── game/       # Core game mechanics
+│   ├── strategy/   # Strategy algorithms
+│   └── utils/      # Helper functions
+│       └── queryParamsUtils.ts # Query parameter handling
+├── themes/         # UI theming
+│   ├── accessibility.css   # Accessibility enhancements
+│   └── darkTheme.ts        # Dark mode theme
+└── index.tsx       # Application entry point
+```
+
+### Query String Parameters
+
+The application supports setting up specific game scenarios through URL query parameters, which is useful for testing and debugging specific situations.
+
+#### Basic Usage
+
+You can specify the initial dealer and player cards using the `dealer` and `player` query parameters:
+
+```
+http://localhost:3000/?dealer=AS,KH&player=9D,10C
+```
+
+This sets up a game with:
+- **Dealer**: Ace of Spades (hole card) and King of Hearts (up card)
+- **Player**: 9 of Diamonds and 10 of Clubs
+
+#### Card Format
+
+Each card is specified using its rank followed by its suit:
+
+- **Rank**: A (Ace), 2-10, J (Jack), Q (Queen), K (King)
+- **Suit**: S (Spades ♠), H (Hearts ♥), D (Diamonds ♦), C (Clubs ♣)
+
+Cards are comma-separated without spaces.
+
+#### Extended Usage
+
+You can also specify more than two cards for testing complex scenarios:
+
+```
+http://localhost:3000/?dealer=AS,KH,4D&player=9D,10C,2S
+```
+
+This will:
+- Give the dealer three cards: Ace of Spades, King of Hearts, and 4 of Diamonds 
+- Give the player three cards: 9 of Diamonds, 10 of Clubs, and 2 of Spades
+
+When the player has three or more cards:
+- If the total is 21 or higher, the player will automatically stand
+- If the total exceeds 21, the player is automatically busted
+
+This allows testing various end-game scenarios.
+
+#### Examples
+
+1. Test player blackjack: `?dealer=10H,6D&player=AS,KD`
+2. Test dealer blackjack: `?dealer=AS,KD&player=10H,7D`
+3. Test player bust scenario: `?dealer=10H,5D&player=10S,7D,9C`
+4. Test soft hand play: `?dealer=10H,5D&player=AS,6D`
+
+## 📜 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgements
+
+- [Blackjack Strategy Charts](https://www.blackjackapprenticeship.com/blackjack-strategy-charts/) for strategy reference
+- [Material-UI](https://mui.com/) for UI components
+- [React](https://reactjs.org/) for the UI framework
+- [WCAG](https://www.w3.org/WAI/standards-guidelines/wcag/) for accessibility guidelines
+- [Framer Motion](https://www.framer.com/motion/) for animation capabilities
