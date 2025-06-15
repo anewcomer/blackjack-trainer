@@ -11,9 +11,8 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
-import Button from '@mui/material/Button';
-import Stack from '@mui/material/Stack';
 import { GameHistoryEntry, SessionStats, PlayerHandHistoryForModal } from '../../logic/types';
+import ModalLink from './ModalLink';
 
 interface HistoryModalProps {
   isOpen: boolean;
@@ -64,7 +63,12 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, history, s
   return (
     <Dialog open={isOpen} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle sx={{ m: 0, p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        Game History
+        <span style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+          Game History
+          <ModalLink onClick={onNewSession} sx={{ ml: 2 }}>
+            New Session
+          </ModalLink>
+        </span>
         <IconButton aria-label="close" onClick={onClose} sx={{ ml: 2 }}>
           <CloseIcon />
         </IconButton>
@@ -117,21 +121,27 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, history, s
             </TableBody>
           </Table>
         </TableContainer>
-        <Stack spacing={2} sx={{ mt: 3 }}>
-          <Paper sx={{ p: 2 }}>
-            <h3 style={{ marginTop: 0, marginBottom: 10, color: '#1976d2' }}>Session Statistics</h3>
-            <p>Correct Decisions: <span style={{ fontWeight: 'bold', color: '#388e3c' }}>{stats.correctMoves}</span> (<span style={{ color: '#aaa' }}>{calculatePercentage(stats.correctMoves, stats.totalDecisions)}</span>)</p>
-            <p>Incorrect Decisions: <span style={{ fontWeight: 'bold', color: '#d32f2f' }}>{stats.incorrectMoves}</span> (<span style={{ color: '#aaa' }}>{calculatePercentage(stats.incorrectMoves, stats.totalDecisions)}</span>)</p>
-            <p>Total Decisions: <span style={{ fontWeight: 'bold' }}>{stats.totalDecisions}</span></p>
-            <hr />
-            <p>Wins: <span style={{ fontWeight: 'bold', color: '#388e3c' }}>{stats.wins}</span> (<span style={{ color: '#aaa' }}>{calculatePercentage(stats.wins, stats.handsPlayed)}</span>)</p>
-            <p>Losses: <span style={{ fontWeight: 'bold', color: '#d32f2f' }}>{stats.losses}</span> (<span style={{ color: '#aaa' }}>{calculatePercentage(stats.losses, stats.handsPlayed)}</span>)</p>
-            <p>Pushes: <span style={{ fontWeight: 'bold', color: '#1976d2' }}>{stats.pushes}</span> (<span style={{ color: '#aaa' }}>{calculatePercentage(stats.pushes, stats.handsPlayed)}</span>)</p>
-            <p>Total Hands Played: <span style={{ fontWeight: 'bold' }}>{stats.handsPlayed}</span></p>
-            <Button onClick={onNewSession} variant="contained" color="secondary" sx={{ mt: 2 }}>New Session</Button>
-          </Paper>
-        </Stack>
       </DialogContent>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '12px 24px',
+        borderTop: '1px solid #eee',
+        background: 'inherit', // inherit modal background
+        fontSize: '0.98rem',
+        flexWrap: 'wrap',
+        gap: '2.5em',
+        boxShadow: '0px 2px 8px 0px rgba(60,60,60,0.04)',
+      }}>
+        <span><span style={{ color: '#388e3c', fontWeight: 500 }}>Correct:</span> <strong>{stats.correctMoves}</strong> <span style={{ color: '#aaa' }}>({calculatePercentage(stats.correctMoves, stats.totalDecisions)})</span></span>
+        <span><span style={{ color: '#d32f2f', fontWeight: 500 }}>Incorrect:</span> <strong>{stats.incorrectMoves}</strong> <span style={{ color: '#aaa' }}>({calculatePercentage(stats.incorrectMoves, stats.totalDecisions)})</span></span>
+        <span><span style={{ fontWeight: 500 }}>Decisions:</span> <strong>{stats.totalDecisions}</strong></span>
+        <span><span style={{ color: '#388e3c', fontWeight: 500 }}>Wins:</span> <strong>{stats.wins}</strong> <span style={{ color: '#aaa' }}>({calculatePercentage(stats.wins, stats.handsPlayed)})</span></span>
+        <span><span style={{ color: '#d32f2f', fontWeight: 500 }}>Losses:</span> <strong>{stats.losses}</strong> <span style={{ color: '#aaa' }}>({calculatePercentage(stats.losses, stats.handsPlayed)})</span></span>
+        <span><span style={{ color: '#1976d2', fontWeight: 500 }}>Pushes:</span> <strong>{stats.pushes}</strong> <span style={{ color: '#aaa' }}>({calculatePercentage(stats.pushes, stats.handsPlayed)})</span></span>
+        <span><span style={{ fontWeight: 500 }}>Hands Played:</span> <strong>{stats.handsPlayed}</strong></span>
+      </div>
     </Dialog>
   );
 };
