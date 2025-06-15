@@ -18,9 +18,19 @@ export function getStrategyKeysForHighlight(playerHandObj: PlayerHand | null, de
   }
   
   // Get the appropriate dealer card based on whether the first card is hidden or not
-  const dealerUpCard = isDealerCardHidden ? dealerCards[1] : dealerCards[0];
+  // Fixed: ensure we handle the case properly regardless of array order
+  let dealerUpCard;
+  if (isDealerCardHidden && dealerCards.length >= 2) {
+    dealerUpCard = dealerCards[1]; // Second card (up card) if first is hidden
+  } else if (dealerCards.length >= 1) {
+    dealerUpCard = dealerCards[0]; // First card if not hidden
+  } else {
+    console.warn("No dealer up card available - invalid dealer cards array");
+    return { type: null, playerKey: null, dealerKey: null };
+  }
+  
   if (!dealerUpCard) {
-    console.warn("No dealer up card available");
+    console.warn("No dealer up card available after selection");
     return { type: null, playerKey: null, dealerKey: null };
   }
 

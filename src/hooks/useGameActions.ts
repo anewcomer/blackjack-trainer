@@ -72,9 +72,24 @@ export const useGameActions = (gameState: GameStateForActions) => {
    * Determines the outcome of the game
    */
   const determineGameOutcome = useCallback((isInitialBlackjackRound: boolean = false, playerHadInitialBlackjack: boolean = false) => {
-    console.log("determineGameOutcome called with:", { 
+    console.log("==== DETERMINING GAME OUTCOME ====");
+    console.log("Parameters:", { 
       isInitialBlackjackRound, 
-      playerHadInitialBlackjack,
+      playerHadInitialBlackjack
+    });
+    
+    // Make sure we have valid data
+    if (!dealerHand || !dealerHand.length) {
+      console.error("Invalid dealer hand when determining outcome:", dealerHand);
+      return;
+    }
+    
+    if (!playerHands || !playerHands.length) {
+      console.error("Invalid player hands when determining outcome:", playerHands);
+      return;
+    }
+    
+    console.log("Current game state:", {
       dealerHand: dealerHand.map(c => `${c.rank}${c.suit}`),
       playerHands: playerHands.map(h => ({
         cards: h.cards.map(c => `${c.rank}${c.suit}`),
@@ -88,8 +103,9 @@ export const useGameActions = (gameState: GameStateForActions) => {
 
     const finalDealerValue = calculateHandValue(dealerHand);
     const dealerBusted = finalDealerValue > 21;
+    const dealerHasBlackjack = finalDealerValue === 21 && dealerHand.length === 2;
     
-    console.log(`Dealer final value: ${finalDealerValue}, busted: ${dealerBusted}`);
+    console.log(`Dealer final value: ${finalDealerValue}, busted: ${dealerBusted}, blackjack: ${dealerHasBlackjack}`);
     
     // Create outcome data for each hand
     const updatedPlayerHands: PlayerHand[] = playerHands.map(hand => {
@@ -158,17 +174,24 @@ export const useGameActions = (gameState: GameStateForActions) => {
     setPlayerHands(updatedPlayerHands);
     setMessage(outcomeMessage);
     setGameActive(false);
+    
+    // dealerHand.length is automatically included in the dependency array through dealerHand
   }, [dealerHand, playerHands, setPlayerHands, setMessage, setGameActive]);
 
   /**
    * Advances to the next unresolved hand or triggers the dealer's turn
    */
-  const advanceOrDealerTurn = useCallback(() => {
-    console.log("advanceOrDealerTurn called, checking if all hands resolved");
+  const advanceOrDealerTurn = useCallback((
+    handsOverride?: PlayerHand[], 
+    forceDealerTurn: boolean = false
+  ) => {
+    console.log("advanceOrDealerTurn called, checking if all hands resolved", 
+      { forceDealerTurn, handsOverrideProvided: !!handsOverride });
     
-    // Create a local copy to prevent closure issues
-    const currentPlayerHands = [...playerHands];
-    const allResolved = currentPlayerHands.every((h: PlayerHand) => h.busted || h.stood || h.surrendered);
+    // Create a local copy to prevent closure issues - use override if provided
+    const currentPlayerHands = handsOverride || [...playerHands];
+    const allResolved = forceDealerTurn || 
+      currentPlayerHands.every((h: PlayerHand) => h.busted || h.stood || h.surrendered);
     
     console.log("All hands resolved?", allResolved);
     console.log("Current hands status:", currentPlayerHands.map(h => ({
@@ -195,40 +218,52 @@ export const useGameActions = (gameState: GameStateForActions) => {
       setMessage("Dealer's turn");
       setHideDealerFirstCard(false);
       
-      // Capture current state values to avoid closure issues
-      const currentDealerHand = [...dealerHand];
-      const currentDeck = [...deck];
-      const currentLog = [...currentRoundDealerActionsLog];
+      // Force update to ensure state is current
+      setPlayerHands([...currentPlayerHands]);
       
-      console.log("Dealer hand before play:", currentDealerHand.map(c => `${c.rank}${c.suit}`));
-      console.log("Dealer value before play:", calculateHandValue(currentDealerHand));
+      // Log the current dealer hand before play
+      console.log("Dealer hand before play:", dealerHand.map(c => `${c.rank}${c.suit}`));
+      console.log("Dealer value before play:", calculateHandValue(dealerHand));
       
-      // Force state updates to be applied before dealer logic
-      const timeoutId = setTimeout(() => {
-        console.log("Starting dealer play logic now");
+      // First, ensure the dealer's hole card is revealed immediately
+      setHideDealerFirstCard(false);
+      
+      // Use a more reliable approach with multiple timeouts to ensure state updates are applied
+      window.setTimeout(() => {
+        console.log("Preparing dealer play logic...");
         
-        try {
-          // Use the imported dealerPlayLogic directly
-          dealerPlayLogic(
-            currentDealerHand, // Use captured state
-            currentDeck,
-            currentLog,
-            setHideDealerFirstCard,
-            setMessage,
-            setDealerHand,
-            setDeck,
-            setCurrentRoundDealerActionsLog,
-            determineGameOutcome
-          );
-        } catch (error) {
-          console.error("Error during dealer play:", error);
-          console.error(error);
-          // Fall back to determine outcome in case of error
-          determineGameOutcome(false, false);
+        // Double-check that the state actually changed
+        if (gameState.hideDealerFirstCard) {
+          console.log("WARNING: Dealer card still hidden, forcing reveal");
+          setHideDealerFirstCard(false);
         }
-      }, 1500); // Increased delay for more reliable state updates
-      
-      return () => clearTimeout(timeoutId);
+        
+        // Now start dealer play after another short delay
+        window.setTimeout(() => {
+          console.log("Starting dealer play logic now");
+          
+          try {
+            // Use the imported dealerPlayLogic directly with the LATEST state
+            // This is critical - we must use the current state, not captured variables
+            dealerPlayLogic(
+              [...dealerHand], // Get fresh copies
+              [...deck],
+              [...currentRoundDealerActionsLog],
+              setHideDealerFirstCard,
+              setMessage,
+              setDealerHand,
+              setDeck,
+              setCurrentRoundDealerActionsLog,
+              determineGameOutcome
+            );
+          } catch (error) {
+            console.error("Error during dealer play:", error);
+            console.error(error);
+            // Fall back to determine outcome in case of error
+            determineGameOutcome(false, false);
+          }
+        }, 500);
+      }, 500);
     } else {
       // Find next unresolved hand
       const nextIdx = playerHands.findIndex((h: PlayerHand, i: number) => i > currentHandIndex && !h.busted && !h.stood && !h.surrendered);
@@ -246,7 +281,7 @@ export const useGameActions = (gameState: GameStateForActions) => {
         }
       }
     }
-  }, [playerHands, dealerHand, deck, currentRoundDealerActionsLog, setHideDealerFirstCard, setMessage, setDealerHand, setDeck, setCurrentRoundDealerActionsLog, currentHandIndex, setCurrentHandIndex, determineGameOutcome]);
+  }, [playerHands, dealerHand, deck, currentRoundDealerActionsLog, setHideDealerFirstCard, setMessage, setDealerHand, setDeck, setCurrentRoundDealerActionsLog, currentHandIndex, setCurrentHandIndex, determineGameOutcome, gameState.hideDealerFirstCard, setPlayerHands]);
 
   /**
    * Logs player's action along with the optimal play
@@ -275,9 +310,12 @@ export const useGameActions = (gameState: GameStateForActions) => {
     // Highlight the correct strategy box
     try {
       console.log("Getting highlight keys for strategy guide");
+      // Make sure we're passing the full dealer hand for correct highlighting
+      // The key issue is that we need to always pass the entire dealer hand
+      // and let getStrategyKeysForHighlight determine which card to use
       const highlightKeys = getStrategyKeysForHighlight(
-        newPlayerHands[handIndex], 
-        gameState.hideDealerFirstCard ? [gameState.dealerHand[0], gameState.dealerHand[1]] : [gameState.dealerHand[0]], 
+        newPlayerHands[handIndex],
+        gameState.dealerHand, // Pass the entire dealer hand
         gameState.hideDealerFirstCard
       );
       console.log("Setting highlightParams:", highlightKeys);
@@ -360,41 +398,54 @@ export const useGameActions = (gameState: GameStateForActions) => {
     console.log("Checking initial blackjack scenarios:");
     console.log(`Player cards: ${playerCard1.rank}${playerCard1.suit}, ${playerCard2.rank}${playerCard2.suit} = ${playerValue}`);
     console.log(`Dealer cards: ${dealerCard1.rank}${dealerCard1.suit}, ${dealerCard2.rank}${dealerCard2.suit} = ${dealerValue}`);
-    console.log(`Player blackjack: ${playerBlackjack}, Dealer blackjack: ${dealerValue === 21}`);
     
-    if (playerBlackjack || dealerValue === 21) {
+    const playerHasBlackjack = playerValue === 21 && initialPlayerHand.cards.length === 2;
+    const dealerHasBlackjack = dealerValue === 21 && dealerHand.length === 2;
+    
+    console.log(`Player blackjack: ${playerHasBlackjack}, Dealer blackjack: ${dealerHasBlackjack}`);
+    
+    if (playerHasBlackjack || dealerHasBlackjack) {
+      // Always reveal dealer's first card in blackjack scenarios
       setHideDealerFirstCard(false);
       
-      if (playerBlackjack && dealerValue === 21) {
+      // Create updated player hand with appropriate outcome
+      let updatedPlayerHand: PlayerHand;
+      let outcomeMessage: string;
+      
+      if (playerHasBlackjack && dealerHasBlackjack) {
         // Both have blackjack
         console.log("OUTCOME: Both have blackjack - Push");
-        setMessage("Both have Blackjack! Push!");
-        setPlayerHands([{
+        outcomeMessage = "Both have Blackjack! Push!";
+        updatedPlayerHand = {
           ...initialPlayerHand,
           outcome: "Push",
           stood: true,
           isBlackjack: true
-        }]);
-      } else if (playerBlackjack) {
+        };
+      } else if (playerHasBlackjack) {
         // Player has blackjack
         console.log("OUTCOME: Player has blackjack - Win");
-        setMessage("Blackjack! You win!");
-        setPlayerHands([{
+        outcomeMessage = "Blackjack! You win!";
+        updatedPlayerHand = {
           ...initialPlayerHand,
           outcome: "Win",
           stood: true,
           isBlackjack: true
-        }]);
+        };
       } else {
         // Dealer has blackjack
         console.log("OUTCOME: Dealer has blackjack - Loss");
-        setMessage("Dealer has Blackjack! You lose.");
-        setPlayerHands([{
+        outcomeMessage = "Dealer has Blackjack! You lose.";
+        updatedPlayerHand = {
           ...initialPlayerHand,
           outcome: "Loss",
           stood: true
-        }]);
+        };
       }
+      
+      // Update state in a more reliable way
+      setPlayerHands([updatedPlayerHand]);
+      setMessage(outcomeMessage);
       
       // End the game since we have an immediate outcome
       determineGameOutcome(true, playerBlackjack);
@@ -419,7 +470,7 @@ export const useGameActions = (gameState: GameStateForActions) => {
       setHideDealerFirstCard, setCanSurrenderGlobal, setMessage, setHighlightParams,
       setCurrentRoundDealerActionsLog, determineGameOutcome
     };
-  }, [setDeck, setPlayerHands, setDealerHand, setCurrentHandIndex, setMessage, setGameActive, setHideDealerFirstCard, setCanSurrenderGlobal, setCurrentRoundDealerActionsLog, determineGameOutcome, setHighlightParams]);
+  }, [setDeck, setPlayerHands, setDealerHand, setCurrentHandIndex, setMessage, setGameActive, setHideDealerFirstCard, setCanSurrenderGlobal, setCurrentRoundDealerActionsLog, determineGameOutcome, setHighlightParams, dealerHand.length]);
 
   /**
    * Handler for player hitting (taking another card)
@@ -472,7 +523,10 @@ export const useGameActions = (gameState: GameStateForActions) => {
     if (busted) {
       setMessage("Busted! Value over 21");
       // Proceed to next hand or dealer's turn after a short delay
-      setTimeout(() => advanceOrDealerTurn(), 1000);
+      setTimeout(() => {
+        console.log("Hit handler timeout - triggering advance with updated state");
+        advanceOrDealerTurn(updatedHandsWithLog);
+      }, 1000);
     }
   }, [currentHandIndex, deck, playerHands, setDeck, setPlayerHands, 
       advanceOrDealerTurn, setMessage, logPlayerAction]);
@@ -503,8 +557,14 @@ export const useGameActions = (gameState: GameStateForActions) => {
     // Update player hands state
     setPlayerHands(newPlayerHands);
     
-    // Proceed to next hand or dealer's turn
-    setTimeout(() => advanceOrDealerTurn(), 500);
+    // Proceed to next hand or dealer's turn with a flag to ensure we're using the latest state
+    // This is critical to prevent stale state issues with the async setState
+    setTimeout(() => {
+      console.log("Stand handler timeout - force dealer turn with updated state");
+      // Force dealer's turn by directly passing the updated state to the function
+      const forceDealerTurn = true;
+      advanceOrDealerTurn(newPlayerHands, forceDealerTurn);
+    }, 500);
   }, [currentHandIndex, playerHands, setPlayerHands, 
       advanceOrDealerTurn, logPlayerAction]);
 
@@ -566,8 +626,11 @@ export const useGameActions = (gameState: GameStateForActions) => {
       setMessage(`Doubled with ${handValue}`);
     }
     
-    // Proceed to next hand or dealer's turn
-    setTimeout(() => advanceOrDealerTurn(), 1000);
+    // Proceed to next hand or dealer's turn with fresh state
+    setTimeout(() => {
+      console.log("Double handler timeout - triggering advance with updated state");
+      advanceOrDealerTurn(newPlayerHands, true); // Force dealer's turn since this hand is done
+    }, 1000);
   }, [currentHandIndex, deck, playerHands, setDeck, setPlayerHands, 
       advanceOrDealerTurn, setMessage, logPlayerAction]);
 
@@ -655,7 +718,10 @@ export const useGameActions = (gameState: GameStateForActions) => {
     // Proceed to play the first of the split hands
     if (card1.rank === 'A') {
       // For split Aces, both hands are automatically stood, so move on
-      setTimeout(() => advanceOrDealerTurn(), 1000);
+      setTimeout(() => {
+        console.log("Split aces handler timeout - triggering advance with updated state");
+        advanceOrDealerTurn(updatedHands);
+      }, 1000);
     }
   }, [currentHandIndex, deck, playerHands, setDeck, setPlayerHands, 
       advanceOrDealerTurn, logPlayerAction, setMessage, setHighlightParams,
@@ -694,8 +760,11 @@ export const useGameActions = (gameState: GameStateForActions) => {
     // After any action, surrender is no longer available
     setCanSurrenderGlobal(false);
     
-    // Proceed to next hand or dealer's turn
-    setTimeout(() => advanceOrDealerTurn(), 500);
+    // Proceed to next hand or dealer's turn with updated state
+    setTimeout(() => {
+      console.log("Surrender handler timeout - triggering advance with updated state");
+      advanceOrDealerTurn(newPlayerHands);
+    }, 500);
   }, [currentHandIndex, playerHands, canSurrenderGlobal, setPlayerHands, 
       advanceOrDealerTurn, setMessage, setCanSurrenderGlobal, logPlayerAction]);
 
