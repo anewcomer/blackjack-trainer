@@ -10,6 +10,7 @@ import { getStrategyKeysForHighlight, getOptimalPlay } from '../logic/blackjackS
 
 
 export const useBlackjackGame = (): BlackjackGameHook => {
+  // --- State Declarations ---
   const [deck, setDeck] = useState<Card[]>([]);
   const [playerHands, setPlayerHands] = useState<PlayerHand[]>([]);
   const [currentHandIndex, setCurrentHandIndex] = useState<number>(0);
@@ -29,7 +30,7 @@ export const useBlackjackGame = (): BlackjackGameHook => {
   // Helper to get the current player hand
   const currentPlayerHand: PlayerHand | null = playerHands.length > 0 && currentHandIndex < playerHands.length ? playerHands[currentHandIndex] : null;
 
-  // Move logRoundToHistory inside the useCallback that uses it, or wrap it in useCallback and use as a stable dependency.
+  // --- logRoundToHistory: must be above determineGameOutcome ---
   const logRoundToHistory = useCallback((resolvedPlayerHands: PlayerHand[], finalDealerHand: Card[], finalDealerActionsLog: DealerActionLogEntry[], dealerBlackjack: boolean, playerBlackjackOnInit: boolean) => {
     const roundEntry = {
       id: Date.now(),
@@ -68,18 +69,7 @@ export const useBlackjackGame = (): BlackjackGameHook => {
     setGameHistory(prev => [...prev, roundEntry]);
   }, []);
 
-  const resetSessionStats = useCallback(() => {
-    setSessionStats({
-        correctMoves: 0, incorrectMoves: 0, totalDecisions: 0,
-        wins: 0, losses: 0, pushes: 0, handsPlayed: 0
-    });
-    setMessage("Session stats reset. Click 'New Game'.");
-  }, [setSessionStats, setMessage]);
-
-  // Forward declaration for use in getOptimalPlay
-  const getOptimalPlayRef = useRef(getOptimalPlay);
-
-  // Moved up: determineGameOutcome (used by newGameHandler, dealerPlayLogic)
+  // --- determineGameOutcome: must be above advanceOrDealerTurn ---
   const determineGameOutcome = useCallback((isInitialBlackjackRound: boolean = false, playerHadInitialBlackjack: boolean = false) => {
     const finalDealerValue = calculateHandValue(dealerHand);
     const dealerBusted = finalDealerValue > 21;
@@ -118,82 +108,47 @@ export const useBlackjackGame = (): BlackjackGameHook => {
     });
   }, [dealerHand, playerHands, currentRoundDealerActionsLog, logRoundToHistory, setMessage, setPlayerHands, setGameActive, setSessionStats]);
 
-  const newGameHandler = useCallback(() => {
-    setMessage("Setting up new game...");
-    let currentDeck = shuffleDeck(createNewDeck());
-
-    const dealOne = (deck: Card[]): { card: Card; updatedDeck: Card[] } => {
-        if (!deck || deck.length === 0) {
-            // This case should ideally not be hit if dealOneCard handles reshuffling
-            console.warn("newGameHandler: Dealing from an empty or null deck, attempting recovery.");
-            return dealOneCard(shuffleDeck(createNewDeck()));
-        }
-        return dealOneCard(deck);
-    }
-
-    let card1: Card, card2: Card, card3: Card, card4: Card;
-    let deckAfterDeal = currentDeck;
-
-    ({ card: card1, updatedDeck: deckAfterDeal } = dealOne(deckAfterDeal));
-    ({ card: card2, updatedDeck: deckAfterDeal } = dealOne(deckAfterDeal));
-    ({ card: card3, updatedDeck: deckAfterDeal } = dealOne(deckAfterDeal));
-    ({ card: card4, updatedDeck: deckAfterDeal } = dealOne(deckAfterDeal));
-
-    const playerCards: Card[] = [card1, card3]; // Assuming dealOne always returns a card
-    const dealerCards: Card[] = [card2, card4]; // Assuming dealOne always returns a card
-
-    const initialPlayerHand: PlayerHand = {
-        cards: playerCards, busted: false, stood: false, doubled: false,
-        splitFromPair: false, surrendered: false,
-        isBlackjack: false, outcome: null,
-        initialCardsForThisHand: [...playerCards], actionsTakenLog: [],
-    };
-
-    setDeck(deckAfterDeal);
-    setPlayerHands([initialPlayerHand]);
-    setDealerHand(dealerCards);
-    setCurrentHandIndex(0);
-    setHideDealerFirstCard(true);
-    setCanSurrenderGlobal(true);
-    setCurrentRoundDealerActionsLog([]);
-
-    const playerValue = calculateHandValue(playerCards);
-    const dealerValue = calculateHandValue(dealerCards);
-    const playerHasBlackjack = playerValue === 21 && playerCards.length === 2;
-    const dealerHasBlackjack = dealerValue === 21 && dealerCards.length === 2;
-
-    if (playerHasBlackjack || dealerHasBlackjack) {
-        setGameActive(false); // Game ends immediately
-        setPlayerHands(prev => [{ ...prev[0], isBlackjack: playerHasBlackjack, stood: true } as PlayerHand]);
-        setHideDealerFirstCard(false);
-        let outcomeMessage = "";
-        if (playerHasBlackjack && dealerHasBlackjack) {
-            outcomeMessage = "Push! Both have Blackjack.";
-            setPlayerHands(prev => [{ ...prev[0], outcome: "Push" } as PlayerHand]);
-        } else if (playerHasBlackjack) {
-            outcomeMessage = "Blackjack! You win!";
-            setPlayerHands(prev => [{ ...prev[0], outcome: "Win" } as PlayerHand]);
-        } else { // Dealer Blackjack
-            outcomeMessage = "Dealer Blackjack! You lose.";
-            setPlayerHands(prev => [{ ...prev[0], outcome: "Loss" } as PlayerHand]);
-        }
-        setMessage(outcomeMessage); // Set message before determineGameOutcome
-        // determineGameOutcome will use the playerHands state set just above
-        // Need to ensure determineGameOutcome uses the latest playerHands state.
-        // Calling determineGameOutcome inside a setPlayerHands updater or useEffect might be more robust.
-        // For now, assuming the state updates apply before determineGameOutcome reads them.
-        // This is a common React pitfall. Let's pass the updated hands directly.
-        // logRoundToHistory needs the final state.
-        // Since determineGameOutcome calls logRoundToHistory, and also sets playerHands,
-        // it's better to let determineGameOutcome handle the final playerHands state.
-        // The setPlayerHands calls above are for immediate UI feedback and setting flags.
-        // determineGameOutcome will then consolidate and log.
-        determineGameOutcome(true, playerHasBlackjack);
+  // --- ADVANCE OR DEALER TURN: Must be above all handlers that reference it ---
+  const advanceOrDealerTurn = useCallback(() => {
+    const allResolved = playerHands.every(h => h.busted || h.stood || h.surrendered);
+    if (allResolved) {
+      const { dealerPlayLogic } = require('../logic/blackjackDealer');
+      dealerPlayLogic(
+        dealerHand,
+        deck,
+        currentRoundDealerActionsLog,
+        setHideDealerFirstCard,
+        setMessage,
+        setDealerHand,
+        setDeck,
+        setCurrentRoundDealerActionsLog,
+        determineGameOutcome
+      );
     } else {
-        setGameActive(true); // Game is active for player's turn
-        setMessage("Your turn. What's your move?");
+      const nextIdx = playerHands.findIndex((h, i) => i > currentHandIndex && !h.busted && !h.stood && !h.surrendered);
+      if (nextIdx !== -1) {
+        setCurrentHandIndex(nextIdx);
+        setMessage(`Now playing Hand ${nextIdx + 1}. What's your move?`);
+      } else {
+        const firstIdx = playerHands.findIndex(h => !h.busted && !h.stood && !h.surrendered);
+        if (firstIdx !== -1) {
+          setCurrentHandIndex(firstIdx);
+          setMessage(`Now playing Hand ${firstIdx + 1}. What's your move?`);
+        }
+      }
     }
-  }, [determineGameOutcome, setMessage, setDeck, setPlayerHands, setDealerHand, setCurrentHandIndex, setHideDealerFirstCard, setCanSurrenderGlobal, setCurrentRoundDealerActionsLog, setGameActive]);
+  }, [playerHands, dealerHand, deck, currentRoundDealerActionsLog, setHideDealerFirstCard, setMessage, setDealerHand, setDeck, setCurrentRoundDealerActionsLog, determineGameOutcome, setCurrentHandIndex, currentHandIndex]);
+
+  const resetSessionStats = useCallback(() => {
+    setSessionStats({
+        correctMoves: 0, incorrectMoves: 0, totalDecisions: 0,
+        wins: 0, losses: 0, pushes: 0, handsPlayed: 0
+    });
+    setMessage("Session stats reset. Click 'New Game'.");
+  }, [setSessionStats, setMessage]);
+
+  // Forward declaration for use in getOptimalPlay
+  const getOptimalPlayRef = useRef(getOptimalPlay);
 
   // --- Strategy and Mistake Checking ---
   const playerCanHit: boolean = !!(gameActive && currentPlayerHand && !currentPlayerHand.busted && !currentPlayerHand.stood && !currentPlayerHand.surrendered && calculateHandValue(currentPlayerHand.cards) < 21);
@@ -327,17 +282,23 @@ export const useBlackjackGame = (): BlackjackGameHook => {
     if (newHandValue > 21) {
         setPlayerHands(prev => prev.map((h, i) => i === currentHandIndex ? { ...h, busted: true, stood: true } as PlayerHand : h));
         setMessage(`Hand ${currentHandIndex + 1} Busted!`);
+        setTimeout(advanceOrDealerTurn, 0);
     } else if (newHandValue === 21) {
         setPlayerHands(prev => prev.map((h, i) => i === currentHandIndex ? { ...h, stood: true } as PlayerHand : h));
+        setTimeout(advanceOrDealerTurn, 0);
     }
     return { success: true, message: `Hit with ${card.rank}${card.suit}.` };
-  }, [gameActive, playerCanHit, deck, currentHandIndex, setMessage, setDeck, setPlayerHands, logPlayerAction, playerHands]);
+  }, [gameActive, playerCanHit, deck, currentHandIndex, setMessage, setDeck, setPlayerHands, logPlayerAction, playerHands, advanceOrDealerTurn]);
 
   const standHandler = useCallback(() => {
     if (!gameActive || !playerCanStand) return;
     logPlayerAction('S');
-    setPlayerHands(prev => prev.map((h, i) => (i === currentHandIndex ? { ...h, stood: true } as PlayerHand : h)));
-  }, [gameActive, playerCanStand, currentHandIndex, logPlayerAction, setPlayerHands]);
+    setPlayerHands(prev => {
+      const updated = prev.map((h, i) => (i === currentHandIndex ? { ...h, stood: true } as PlayerHand : h));
+      return updated;
+    });
+    setTimeout(advanceOrDealerTurn, 0);
+  }, [gameActive, playerCanStand, currentHandIndex, logPlayerAction, setPlayerHands, advanceOrDealerTurn]);
 
   const doubleHandler = useCallback(() => {
     if (!gameActive || !playerCanDouble) return;
@@ -366,13 +327,15 @@ export const useBlackjackGame = (): BlackjackGameHook => {
     if (newHandValue > 21) {
       setMessage(`Hand ${currentHandIndex + 1} Doubled and Busted!`);
     }
-  }, [gameActive, playerCanDouble, deck, currentHandIndex, playerHands, logPlayerAction, setMessage, setDeck, setPlayerHands]);
+    setTimeout(advanceOrDealerTurn, 0);
+  }, [gameActive, playerCanDouble, deck, currentHandIndex, playerHands, logPlayerAction, setMessage, setDeck, setPlayerHands, advanceOrDealerTurn]);
 
   const surrenderHandler = useCallback(() => {
     if (!gameActive || !playerCanSurrender) return;
     logPlayerAction('R');
-    setPlayerHands(prev => prev.map((h, i) => (i === currentHandIndex ? { ...h, surrendered: true, stood: true, outcome: "Loss" } as PlayerHand : h)));
-  }, [gameActive, playerCanSurrender, currentHandIndex, logPlayerAction, setPlayerHands]);
+    setPlayerHands(prev => prev.map((h, i) => i === currentHandIndex ? { ...h, surrendered: true, stood: true, outcome: "Loss" } as PlayerHand : h));
+    setTimeout(advanceOrDealerTurn, 0);
+  }, [gameActive, playerCanSurrender, currentHandIndex, logPlayerAction, setPlayerHands, advanceOrDealerTurn]);
 
   const splitHandler = useCallback(() => {
     if (!gameActive || !playerCanSplit) return;
@@ -441,6 +404,85 @@ export const useBlackjackGame = (): BlackjackGameHook => {
     }
   }, [playerHands, currentHandIndex, dealerHand, hideDealerFirstCard, gameActive]);
 
+  // --- New Game Handler: resets deck, deals new cards, and starts a new round ---
+  const newGameHandler = useCallback(() => {
+    setMessage("Setting up new game...");
+    let currentDeck = shuffleDeck(createNewDeck());
+
+    const dealOne = (deck: Card[]): { card: Card; updatedDeck: Card[] } => {
+        if (!deck || deck.length === 0) {
+            // This case should ideally not be hit if dealOneCard handles reshuffling
+            console.warn("newGameHandler: Dealing from an empty or null deck, attempting recovery.");
+            return dealOneCard(shuffleDeck(createNewDeck()));
+        }
+        return dealOneCard(deck);
+    };
+
+    let card1: Card, card2: Card, card3: Card, card4: Card;
+    let deckAfterDeal = currentDeck;
+
+    ({ card: card1, updatedDeck: deckAfterDeal } = dealOne(deckAfterDeal));
+    ({ card: card2, updatedDeck: deckAfterDeal } = dealOne(deckAfterDeal));
+    ({ card: card3, updatedDeck: deckAfterDeal } = dealOne(deckAfterDeal));
+    ({ card: card4, updatedDeck: deckAfterDeal } = dealOne(deckAfterDeal));
+
+    const playerCards: Card[] = [card1, card3];
+    const dealerCards: Card[] = [card2, card4];
+
+    const initialPlayerHand: PlayerHand = {
+        cards: playerCards, busted: false, stood: false, doubled: false,
+        splitFromPair: false, surrendered: false,
+        isBlackjack: false, outcome: null,
+        initialCardsForThisHand: [...playerCards], actionsTakenLog: [],
+    };
+
+    setDeck(deckAfterDeal);
+    setPlayerHands([initialPlayerHand]);
+    setDealerHand(dealerCards);
+    setCurrentHandIndex(0);
+    setHideDealerFirstCard(true);
+    setCanSurrenderGlobal(true);
+    setCurrentRoundDealerActionsLog([]);
+
+    const playerValue = calculateHandValue(playerCards);
+    const dealerValue = calculateHandValue(dealerCards);
+    const playerHasBlackjack = playerValue === 21 && playerCards.length === 2;
+    const dealerHasBlackjack = dealerValue === 21 && dealerCards.length === 2;
+
+    if (playerHasBlackjack || dealerHasBlackjack) {
+        setGameActive(false); // Game ends immediately
+        setPlayerHands(prev => [{ ...prev[0], isBlackjack: playerHasBlackjack, stood: true } as PlayerHand]);
+        setHideDealerFirstCard(false);
+        let outcomeMessage = "";
+        if (playerHasBlackjack && dealerHasBlackjack) {
+            outcomeMessage = "Push! Both have Blackjack.";
+            setPlayerHands(prev => [{ ...prev[0], outcome: "Push" } as PlayerHand]);
+        } else if (playerHasBlackjack) {
+            outcomeMessage = "Blackjack! You win!";
+            setPlayerHands(prev => [{ ...prev[0], outcome: "Win" } as PlayerHand]);
+        } else { // Dealer Blackjack
+            outcomeMessage = "Dealer Blackjack! You lose.";
+            setPlayerHands(prev => [{ ...prev[0], outcome: "Loss" } as PlayerHand]);
+        }
+        setMessage(outcomeMessage);
+        determineGameOutcome(true, playerHasBlackjack);
+    } else {
+        setGameActive(true);
+        setMessage("Your turn. What's your move?");
+    }
+  }, [determineGameOutcome, setMessage, setDeck, setPlayerHands, setDealerHand, setCurrentHandIndex, setHideDealerFirstCard, setCanSurrenderGlobal, setCurrentRoundDealerActionsLog, setGameActive]);
+
+  // --- Ensure dealer's turn runs when all player hands are resolved ---
+  useEffect(() => {
+    if (
+      playerHands.length > 0 &&
+      playerHands.every((h: PlayerHand) => h.busted || h.stood || h.surrendered) &&
+      gameActive
+    ) {
+      advanceOrDealerTurn();
+    }
+  }, [playerHands, gameActive, advanceOrDealerTurn]);
+
   return {
     playerHands,
     currentHandIndex,
@@ -469,3 +511,5 @@ export const useBlackjackGame = (): BlackjackGameHook => {
     playerCanSurrender,
   };
 };
+
+// --- END OF HOOK: Return all handlers and state ---

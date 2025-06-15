@@ -6,49 +6,69 @@ export function getStrategyKeysForHighlight(playerHandObj: PlayerHand | null, de
   if (!playerHandObj || playerHandObj.cards.length === 0 || !dealerCards || dealerCards.length === 0) {
     return { type: null, playerKey: null, dealerKey: null };
   }
+  
+  // Get the appropriate dealer card based on whether the first card is hidden or not
   const dealerUpCard = isDealerCardHidden ? dealerCards[1] : dealerCards[0];
   if (!dealerUpCard) return { type: null, playerKey: null, dealerKey: null };
 
+  // Normalize dealer card rank (10, J, Q, K all become T)
   const dealerRank = dealerUpCard.rank;
-  let tempDealerKey = (['K', 'Q', 'J'].includes(dealerRank)) ? 'T' : dealerRank;
-  if (!['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'A'].includes(tempDealerKey)) tempDealerKey = null as any;
-  const dealerKey = tempDealerKey as HighlightParams['dealerKey'];
-
+  let tempDealerKey = (['K', 'Q', 'J', '10'].includes(dealerRank)) ? 'T' : dealerRank;
+  if (!['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'A'].includes(tempDealerKey)) {
+    console.warn(`Invalid dealer card rank for highlight: ${dealerRank}`);
+    return { type: null, playerKey: null, dealerKey: null };
+  }
+  
+  const dealerKey = tempDealerKey;
   const playerCards = playerHandObj.cards;
   const numPlayerCards = playerCards.length;
   const playerValue = calculateHandValue(playerCards);
   let type = null, playerKey = null;
 
+  // Check for pairs first
   if (numPlayerCards === 2 && playerCards[0].rank === playerCards[1].rank) {
     type = 'pairs';
     const rank = playerCards[0].rank;
-    const rankStr = (['K', 'Q', 'J'].includes(rank)) ? 'T' : rank;
+    const rankStr = (['K', 'Q', 'J', '10'].includes(rank)) ? 'T' : rank;
     playerKey = `${rankStr},${rankStr}`;
     if (!['A,A', 'T,T', '9,9', '8,8', '7,7', '6,6', '5,5', '4,4', '3,3', '2,2'].includes(playerKey)) {
-      type = null; playerKey = null;
+      console.warn(`Invalid pair for highlight: ${playerKey}`);
+      return { type: null, playerKey: null, dealerKey: null };
     }
   } else {
+    // Check for soft hands (hand with an Ace counted as 11)
     let hasAce = false, nonAceTotal = 0, aceCount = 0;
     playerCards.forEach(card => {
       if (card.rank === 'A') { hasAce = true; aceCount++; }
       else { nonAceTotal += VALUES[card.rank]; }
     });
-    if (hasAce && playerValue > nonAceTotal + aceCount) {
+    
+    if (hasAce && playerValue === nonAceTotal + aceCount + 10) { // Ace is being counted as 11
       type = 'soft';
-      const otherValue = playerValue - 11;
-      if (otherValue >= 2 && otherValue <= 9) playerKey = `A,${otherValue}`;
-      else { type = null; playerKey = null; }
+      const otherValue = playerValue - 11; // Value excluding the Ace counted as 11
+      if (otherValue >= 2 && otherValue <= 9) {
+        playerKey = `A,${otherValue}`;
+      } else {
+        console.warn(`Invalid soft hand value for highlight: ${otherValue}`);
+        return { type: null, playerKey: null, dealerKey: null };
+      }
     } else {
+      // Hard hand (no Ace or Ace counted as 1)
       type = 'hard';
       if (playerValue >= 17) playerKey = '17+';
-      else if (playerValue <= 7 && playerValue >= 5) playerKey = '5-7';
-      else if (playerValue < 5) playerKey = '5-7';
+      else if (playerValue <= 7) playerKey = '5-7';
       else playerKey = playerValue.toString();
+      
       if (!['17+', '16', '15', '14', '13', '12', '11', '10', '9', '8', '5-7'].includes(playerKey)) {
-         playerKey = null;
+        console.warn(`Invalid hard hand value for highlight: ${playerValue}`);
+        return { type: null, playerKey: null, dealerKey: null };
       }
     }
   }
+  
+  // For debugging
+  console.log(`Highlight params: type=${type}, playerKey=${playerKey}, dealerKey=${dealerKey}`);
+  
   return { type: type as HighlightParams['type'], playerKey, dealerKey };
 }
 

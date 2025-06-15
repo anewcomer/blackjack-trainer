@@ -1,6 +1,6 @@
 import React from 'react';
 import CardComponent from '../Card/Card';
-import { Card as CardType, PlayerHand as PlayerHandType } from '../../logic/types';
+import { Card as CardType, PlayerHand as PlayerHandType } from '../../logic/blackjackTypes';
 import { Box, Typography, Paper } from '@mui/material';
 
 interface GameAreaProps {

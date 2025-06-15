@@ -33,7 +33,8 @@ const renderStrategyTable = (title: string, data: { [key: string]: string }, pla
     const strategyData = data;
 
     const isHighlighted = (playerVal: string, dealerVal: string): boolean => {
-        // Basic check, can be made more robust based on how keys are structured
+        // Both keys need to be present for highlighting to work
+        if (!highlightPlayerKey || !highlightDealerKey) return false;
         return playerVal === highlightPlayerKey && dealerVal === highlightDealerKey;
     };
 
@@ -102,6 +103,11 @@ const condensedLegend =
 
 const StrategyGuide: React.FC<StrategyGuideProps> = ({ highlightType, highlightPlayerKey, highlightDealerKey }) => {
     const [activeTab, setActiveTab] = useState<PlayerHandType>('hard');
+    
+    // For debugging
+    useEffect(() => {
+        console.log(`StrategyGuide props: type=${highlightType}, player=${highlightPlayerKey}, dealer=${highlightDealerKey}`);
+    }, [highlightType, highlightPlayerKey, highlightDealerKey]);
 
     // Automatically switch to the correct tab when highlightType changes
     useEffect(() => {
@@ -110,7 +116,13 @@ const StrategyGuide: React.FC<StrategyGuideProps> = ({ highlightType, highlightP
         }
     }, [highlightType]);
 
-    const getTableHighlightKeys = (tableType: PlayerHandType) => highlightType === tableType ? { playerKey: highlightPlayerKey, dealerKey: highlightDealerKey } : {};
+    // Only pass the highlight keys to the relevant table type
+    const getTableHighlightKeys = (tableType: PlayerHandType) => {
+        if (highlightType === tableType) {
+            return { playerKey: highlightPlayerKey, dealerKey: highlightDealerKey };
+        } 
+        return { playerKey: null, dealerKey: null };
+    };
 
     return (
         <Box id="strategy-guide-container" sx={{ mt: 4, mb: 2 }}>

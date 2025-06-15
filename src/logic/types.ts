@@ -1,3 +1,5 @@
+// DEPRECATED: Use '../logic/blackjackTypes' for all type imports. This file is obsolete and should not be used.
+
 // Core type and interface definitions for Blackjack Trainer
 
 export interface Card {

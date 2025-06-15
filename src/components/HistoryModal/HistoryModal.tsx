@@ -11,7 +11,7 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
-import { GameHistoryEntry, SessionStats, PlayerHandHistoryForModal } from '../../logic/types';
+import { GameHistoryEntry, SessionStats, PlayerHandHistoryForModal } from '../../logic/blackjackTypes';
 import ModalLink from './ModalLink';
 
 interface HistoryModalProps {
