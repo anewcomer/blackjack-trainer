@@ -15,6 +15,23 @@ import { getOptimalPlay } from '../logic/blackjackStrategy';
 import { getStrategyKeysForHighlight } from '../logic/blackjackStrategy';
 import { dealerPlayLogic } from '../logic/blackjackDealer';
 
+import { 
+  Card, 
+  PlayerHand, 
+  ActionLogEntry, 
+  HighlightParams 
+} from '../logic';
+import { 
+  calculateHandValue, 
+  dealOneCard, 
+  createNewDeck, 
+  shuffleDeck 
+} from '../logic';
+import { getOptimalPlay } from '../logic/blackjackStrategy';
+import { getStrategyKeysForHighlight } from '../logic/blackjackStrategy';
+import { dealerPlayLogic } from '../logic/blackjackDealer';
+import { parseQueryParams, updateUrlWithGameState, shouldAutoPlayDealer } from '../logic/utils/queryParamsUtils';
+
 /**
  * Interface for the game state required by useGameActions
  */
@@ -353,22 +370,101 @@ export const useGameActions = (gameState: GameStateForActions) => {
     const newDeck = shuffleDeck(createNewDeck());
     console.log("New game started with shuffled deck");
     
-    // Deal the initial cards
-    const { card: playerCard1, updatedDeck: deck1 } = dealOneCard(newDeck);
-    console.log(`Dealt player card 1: ${playerCard1.rank}${playerCard1.suit}`);
+    // Check for query parameters
+    const { dealerCards, playerCards } = parseQueryParams();
     
-    const { card: dealerCard1, updatedDeck: deck2 } = dealOneCard(deck1);
-    console.log(`Dealt dealer card 1 (hole card): ${dealerCard1.rank}${dealerCard1.suit}`);
+    // Variables to store our cards and final deck
+    let playerCard1: Card, playerCard2: Card;
+    let dealerCard1: Card, dealerCard2: Card;
+    let finalDeck = newDeck;
     
-    const { card: playerCard2, updatedDeck: deck3 } = dealOneCard(deck2);
-    console.log(`Dealt player card 2: ${playerCard2.rank}${playerCard2.suit}`);
+    if (dealerCards && dealerCards.length >= 2 && playerCards && playerCards.length >= 2) {
+      // Use cards from query parameters
+      console.log("Using cards from query parameters");
+      
+      // Extract dealer cards
+      dealerCard1 = dealerCards[0]; // Hole card
+      dealerCard2 = dealerCards[1]; // Up card
+      console.log(`Using dealer cards from URL: ${dealerCard1.rank}${dealerCard1.suit}, ${dealerCard2.rank}${dealerCard2.suit}`);
+      
+      // Extract player cards
+      playerCard1 = playerCards[0];
+      playerCard2 = playerCards[1];
+      console.log(`Using player cards from URL: ${playerCard1.rank}${playerCard1.suit}, ${playerCard2.rank}${playerCard2.suit}`);
+      
+      // Remove these cards from the deck to avoid duplicates
+      finalDeck = finalDeck.filter(card => 
+        !(card.rank === dealerCard1.rank && card.suit === dealerCard1.suit) && 
+        !(card.rank === dealerCard2.rank && card.suit === dealerCard2.suit) &&
+        !(card.rank === playerCard1.rank && card.suit === playerCard1.suit) &&
+        !(card.rank === playerCard2.rank && card.suit === playerCard2.suit)
+      );
+      
+      // Update the URL to reflect the current game state
+      updateUrlWithGameState([dealerCard1, dealerCard2], [playerCard1, playerCard2]);
+    } else {
+      // Deal cards normally
+      console.log("Dealing cards normally (no valid query parameters)");
+      
+      const { card: pCard1, updatedDeck: deck1 } = dealOneCard(newDeck);
+      playerCard1 = pCard1;
+      console.log(`Dealt player card 1: ${playerCard1.rank}${playerCard1.suit}`);
+      
+      const { card: dCard1, updatedDeck: deck2 } = dealOneCard(deck1);
+      dealerCard1 = dCard1;
+      console.log(`Dealt dealer card 1 (hole card): ${dealerCard1.rank}${dealerCard1.suit}`);
+      
+      const { card: pCard2, updatedDeck: deck3 } = dealOneCard(deck2);
+      playerCard2 = pCard2;
+      console.log(`Dealt player card 2: ${playerCard2.rank}${playerCard2.suit}`);
+      
+      const { card: dCard2, updatedDeck: finalUpdatedDeck } = dealOneCard(deck3);
+      dealerCard2 = dCard2;
+      finalDeck = finalUpdatedDeck;
+      console.log(`Dealt dealer card 2 (up card): ${dealerCard2.rank}${dealerCard2.suit}`);
+      
+      // Update the URL with the dealt cards
+      updateUrlWithGameState([dealerCard1, dealerCard2], [playerCard1, playerCard2]);
+    }
     
-    const { card: dealerCard2, updatedDeck: finalDeck } = dealOneCard(deck3);
-    console.log(`Dealt dealer card 2 (up card): ${dealerCard2.rank}${dealerCard2.suit}`);
+    // Handle additional cards from query parameters if present
+    // The original query param parsing already happened at the beginning of the function
+    // so we can use existing dealerCards and playerCards variables
+    let additionalPlayerCards: Card[] = [];
+    let additionalDealerCards: Card[] = [];
+    
+    // Get additional player cards beyond the first two
+    if (playerCards && playerCards.length > 2) {
+      additionalPlayerCards = playerCards.slice(2);
+      console.log(`Using ${additionalPlayerCards.length} additional player cards from URL`);
+      
+      // Remove these cards from the deck
+      for (const card of additionalPlayerCards) {
+        finalDeck = finalDeck.filter(c => 
+          !(c.rank === card.rank && c.suit === card.suit)
+        );
+      }
+    }
+    
+    // Get additional dealer cards beyond the first two
+    if (dealerCards && dealerCards.length > 2) {
+      additionalDealerCards = dealerCards.slice(2);
+      console.log(`Using ${additionalDealerCards.length} additional dealer cards from URL`);
+      
+      // Remove these cards from the deck
+      for (const card of additionalDealerCards) {
+        finalDeck = finalDeck.filter(c => 
+          !(c.rank === card.rank && c.suit === card.suit)
+        );
+      }
+    }
+    
+    // Create player hand with all cards
+    const allPlayerCards = [playerCard1, playerCard2, ...additionalPlayerCards];
     
     // Create initial player hand
     const initialPlayerHand: PlayerHand = {
-      cards: [playerCard1, playerCard2],
+      cards: allPlayerCards,
       busted: false,
       stood: false,
       doubled: false,
@@ -376,18 +472,29 @@ export const useGameActions = (gameState: GameStateForActions) => {
       surrendered: false,
       isBlackjack: false,
       outcome: null,
-      initialCardsForThisHand: [playerCard1, playerCard2],
+      initialCardsForThisHand: [playerCard1, playerCard2], // Only the initial two cards
       actionsTakenLog: []
     };
 
-    const playerValue = calculateHandValue([playerCard1, playerCard2]);
-    const dealerValue = calculateHandValue([dealerCard1, dealerCard2]);
-    const playerBlackjack = playerValue === 21;
+    // Create dealer hand with all cards
+    const allDealerCards = [dealerCard1, dealerCard2, ...additionalDealerCards];
+
+    const playerValue = calculateHandValue(allPlayerCards);
+    const dealerValue = calculateHandValue(allDealerCards);
+    const playerBlackjack = playerValue === 21 && allPlayerCards.length === 2;
+    
+    // Auto-stand if the player has 21+ (for test scenarios with many cards)
+    if (playerValue >= 21 && additionalPlayerCards.length > 0) {
+      initialPlayerHand.stood = true;
+      if (playerValue > 21) {
+        initialPlayerHand.busted = true;
+      }
+    }
     
     // Update all game state
     setDeck(finalDeck);
     setPlayerHands([initialPlayerHand]);
-    setDealerHand([dealerCard1, dealerCard2]);
+    setDealerHand(allDealerCards);
     setCurrentHandIndex(0);
     setGameActive(true);
     setHideDealerFirstCard(true);
@@ -396,8 +503,8 @@ export const useGameActions = (gameState: GameStateForActions) => {
     
     // Check for blackjack scenarios
     console.log("Checking initial blackjack scenarios:");
-    console.log(`Player cards: ${playerCard1.rank}${playerCard1.suit}, ${playerCard2.rank}${playerCard2.suit} = ${playerValue}`);
-    console.log(`Dealer cards: ${dealerCard1.rank}${dealerCard1.suit}, ${dealerCard2.rank}${dealerCard2.suit} = ${dealerValue}`);
+    console.log(`Player cards: ${allPlayerCards.map(c => c.rank + c.suit).join(', ')} = ${playerValue}`);
+    console.log(`Dealer cards: ${allDealerCards.map(c => c.rank + c.suit).join(', ')} = ${dealerValue}`);
     
     const playerHasBlackjack = playerValue === 21 && initialPlayerHand.cards.length === 2;
     const dealerHasBlackjack = dealerValue === 21 && dealerHand.length === 2;
@@ -449,6 +556,29 @@ export const useGameActions = (gameState: GameStateForActions) => {
       
       // End the game since we have an immediate outcome
       determineGameOutcome(true, playerBlackjack);
+    } else if (shouldAutoPlayDealer([initialPlayerHand])) {
+      // Auto-play the dealer's turn for debug/test scenarios
+      console.log("Auto-playing dealer's turn for debug scenario");
+      setHideDealerFirstCard(false);
+      setMessage("Dealer's turn (auto-play)");
+      
+      // Import the dealer logic and immediately play the dealer's turn
+      const { dealerPlayLogic } = require('../logic/blackjackDealer');
+      
+      // Schedule dealer play to allow UI to update first
+      setTimeout(() => {
+        dealerPlayLogic(
+          allDealerCards,
+          finalDeck,
+          [],
+          setHideDealerFirstCard,
+          setMessage,
+          setDealerHand,
+          setDeck,
+          setCurrentRoundDealerActionsLog,
+          determineGameOutcome
+        );
+      }, 800);
     } else {
       // Regular game - player's turn
       setMessage("Your move");
@@ -465,7 +595,7 @@ export const useGameActions = (gameState: GameStateForActions) => {
     return {
       deck: finalDeck,
       playerHands: [initialPlayerHand],
-      dealerHand: [dealerCard1, dealerCard2],
+      dealerHand: allDealerCards,
       setDeck, setPlayerHands, setDealerHand, setCurrentHandIndex, setGameActive,
       setHideDealerFirstCard, setCanSurrenderGlobal, setMessage, setHighlightParams,
       setCurrentRoundDealerActionsLog, determineGameOutcome
