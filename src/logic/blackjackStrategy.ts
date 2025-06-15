@@ -1,5 +1,5 @@
-import { Card, PlayerHand, HighlightParams, GameHistoryEntry, DealerActionLogEntry, SessionStats } from './blackjackTypes';
-import { VALUES, GAME_RULES } from './blackjackConstants';
+import { Card, PlayerHand, HighlightParams } from './blackjackTypes';
+import { VALUES } from './blackjackConstants';
 import { calculateHandValue } from './blackjackUtils';
 
 export function getStrategyKeysForHighlight(playerHandObj: PlayerHand | null, dealerCards: Card[], isDealerCardHidden: boolean): HighlightParams {

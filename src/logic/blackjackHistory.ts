@@ -1,4 +1,4 @@
-import { PlayerHand, Card, DealerActionLogEntry, GameHistoryEntry, SessionStats } from './blackjackTypes';
+import { PlayerHand, Card, DealerActionLogEntry, GameHistoryEntry } from './blackjackTypes';
 import { calculateHandValue } from './blackjackUtils';
 
 export function logRoundToHistory(

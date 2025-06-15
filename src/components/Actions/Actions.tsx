@@ -1,5 +1,5 @@
 import React from 'react';
-import './Actions.css';
+import { Stack, Button } from '@mui/material';
 
 interface ActionsProps {
   onNewGame: () => void;
@@ -30,25 +30,15 @@ const Actions: React.FC<ActionsProps> = ({
   playerCanSurrender,
 }) => {
   return (
-    <div className="actions">
-      <button onClick={onHit} disabled={!playerCanHit} className="action-button">
-        Hit
-      </button>
-      <button onClick={onStand} disabled={!playerCanStand} className="action-button">
-        Stand
-      </button>
-      <button onClick={onDouble} disabled={!playerCanDouble} className="action-button">
-        Double Down
-      </button>
-      <button onClick={onSplit} disabled={!playerCanSplit} className="action-button">
-        Split
-      </button>
-      <button onClick={onSurrender} disabled={!playerCanSurrender} className="action-button">
-        Surrender
-      </button>
-      <button onClick={onNewGame} className="action-button new-game-button">New Game</button>
-      <button onClick={onShowHistory} className="action-button">Show History</button>
-    </div>
+    <Stack direction="row" spacing={1} sx={{ my: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+      <Button variant="contained" color="primary" onClick={onHit} disabled={!playerCanHit}>Hit</Button>
+      <Button variant="contained" color="primary" onClick={onStand} disabled={!playerCanStand}>Stand</Button>
+      <Button variant="contained" color="secondary" onClick={onDouble} disabled={!playerCanDouble}>Double</Button>
+      <Button variant="contained" color="secondary" onClick={onSplit} disabled={!playerCanSplit}>Split</Button>
+      <Button variant="contained" color="warning" onClick={onSurrender} disabled={!playerCanSurrender}>Surrender</Button>
+      <Button variant="outlined" color="success" onClick={onNewGame}>New Game</Button>
+      <Button variant="outlined" color="info" onClick={onShowHistory}>Show History</Button>
+    </Stack>
   );
 };
 

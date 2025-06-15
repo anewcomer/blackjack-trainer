@@ -1,16 +1,19 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import './index.css';
-import './components/App/App.css'; // Import global styles
 import App from './components/App/App';
 import reportWebVitals from './reportWebVitals';
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import darkTheme from './themes/darkTheme';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('Failed to find the root element');
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <App />
+    <ThemeProvider theme={darkTheme}>
+      <CssBaseline />
+      <App />
+    </ThemeProvider>
   </React.StrictMode>
 );
 

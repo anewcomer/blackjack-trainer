@@ -1,5 +1,5 @@
 import React from 'react';
-import './Card.css';
+import { Box, Typography } from '@mui/material';
 
 // We can use the Card type from useBlackjackGame if it's exported and suitable,
 // or define a local one specific to this component's needs.
@@ -14,20 +14,17 @@ interface CardProps {
 }
 const CardComponent: React.FC<CardProps> = ({ card, hidden }) => {
   if (!card) {
-    // Render a placeholder or nothing if card data is missing
-    return <div className="card empty"></div>;
+    return <Box sx={{ width: 40, height: 60, border: '1px dashed grey', borderRadius: 1, display: 'inline-block', m: 0.5, bgcolor: 'background.paper', opacity: 0.5 }} />;
   }
-
   if (hidden) {
-    return <div className="card hidden" aria-label="Hidden card"></div>;
+    return <Box sx={{ width: 40, height: 60, border: '2px solid', borderColor: 'grey.700', borderRadius: 1, display: 'inline-block', m: 0.5, bgcolor: 'grey.400' }} aria-label="Hidden card" />;
   }
-
   const isRed = card.suit === '\u2665' || card.suit === '\u2666';
   return (
-    <div className={`card ${isRed ? 'red' : ''}`} aria-label={`${card.rank} of ${card.suit}`}>
-      <div className="rank">{card.rank}</div>
-      <div className="suit">{card.suit}</div>
-    </div>
+    <Box sx={{ width: 40, height: 60, border: '2px solid', borderColor: isRed ? 'error.main' : 'grey.700', borderRadius: 1, display: 'inline-block', m: 0.5, bgcolor: 'background.paper', color: isRed ? 'error.main' : 'text.primary', position: 'relative', boxShadow: 2 }} aria-label={`${card.rank} of ${card.suit}`}>
+      <Typography variant="body2" sx={{ position: 'absolute', top: 4, left: 6, fontWeight: 'bold' }}>{card.rank}</Typography>
+      <Typography variant="body2" sx={{ position: 'absolute', bottom: 4, right: 6 }}>{card.suit}</Typography>
+    </Box>
   );
 };
 

@@ -1,6 +1,11 @@
 // Utility functions and constants for Blackjack Trainer
 import { Card } from './blackjackTypes';
 
+export const VALUES: { [key: string]: number } = {
+  '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10,
+  'J': 10, 'Q': 10, 'K': 10, 'A': 11
+};
+
 export function calculateHandValue(handCards: Card[]): number {
   if (!handCards || handCards.length === 0) return 0;
   let value = 0;
@@ -39,10 +44,6 @@ export function getHandScoreText(handCards: Card[]): string {
 export function createNewDeck(): Card[] {
   const SUITS: string[] = ['♠', '♥', '♦', '♣'];
   const RANKS: string[] = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
-  const VALUES: { [key: string]: number } = {
-    '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10,
-    'J': 10, 'Q': 10, 'K': 10, 'A': 11
-  };
   const newDeck: Card[] = [];
   for (let i = 0; i < 1; i++) {
     for (const suit of SUITS) {

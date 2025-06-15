@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { hardTotalsData, softTotalsData, pairSplittingData } from '../../data/strategyData';
-import './StrategyGuide.css';
+import { Box, Tabs, Tab, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 
 // Helper function to render a strategy table
 type PlayerHandType = 'pairs' | 'soft' | 'hard';
@@ -10,6 +10,15 @@ interface StrategyGuideProps {
   highlightPlayerKey: string | null;
   highlightDealerKey: string | null;
 } // Props for highlighting (currently unused in rendering logic)
+
+const actionColors: Record<string, string> = {
+  S: 'success.light', // Stand
+  H: 'info.light',    // Hit
+  D: 'warning.light', // Double
+  P: 'secondary.light', // Split
+  R: 'error.light',   // Surrender
+};
+const highlightColor = '#ffe600'; // Bright yellow
 
 const renderStrategyTable = (title: string, data: { [key: string]: string }, playerHandType: PlayerHandType, highlightPlayerKey?: string | null, highlightDealerKey?: string | null) => {
     // Player hand values (rows) - customize as needed
@@ -23,45 +32,73 @@ const renderStrategyTable = (title: string, data: { [key: string]: string }, pla
     const dealerValues: string[] = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'A'];
     const strategyData = data;
 
-    const getActionClass = (action: string): string => {
-        if (!action) return '';
-        return `bs-${action.toLowerCase()}`;
-    };
     const isHighlighted = (playerVal: string, dealerVal: string): boolean => {
         // Basic check, can be made more robust based on how keys are structured
         return playerVal === highlightPlayerKey && dealerVal === highlightDealerKey;
     };
 
     return (
-        <div className="bs-table">
-            <h4>{title}</h4>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Player</th>
-                        {dealerValues.map(dealerVal => <th key={dealerVal}>{dealerVal}</th>)}
-                    </tr>
-                </thead>
-                <tbody>
-                    {playerValues.map(playerVal => (
-                        <tr key={playerVal}>
-                            <td>{playerVal}</td>
-                            {dealerValues.map(dealerVal => {
-                                const action = strategyData[`${playerVal}-${dealerVal}`] || '-'; // Default or placeholder
-                                const highlighted = isHighlighted(playerVal, dealerVal);
-                                return (
-                                    <td key={`${playerVal}-${dealerVal}`} className={`bs-action ${getActionClass(action)} ${highlighted ? 'bs-highlight' : ''}`}>
-                                        {action}
-                                    </td>
-                                );
-                            })}
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
+        <Box sx={{ my: 1, overflowX: 'auto', width: '100%' }}>
+            <TableContainer component={Paper} sx={{ minWidth: 0, width: '100%', overflowX: 'auto' }}>
+                <Table size="small" sx={{ minWidth: 0, width: '100%' }}>
+                    <TableHead>
+                        <TableRow>
+                            <TableCell align="center" sx={{ p: 0.1, fontSize: '0.72em', width: 20, minWidth: 20, maxWidth: 28, fontFamily: 'monospace' }}>P</TableCell>
+                            {dealerValues.map(dealerVal => (
+                                <TableCell key={dealerVal} align="center" sx={{ p: 0.1, fontSize: '0.72em', width: 20, minWidth: 20, maxWidth: 28, fontFamily: 'monospace' }}>{dealerVal}</TableCell>
+                            ))}
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {playerValues.map(playerVal => (
+                            <TableRow key={playerVal}>
+                                <TableCell align="center" sx={{ p: 0.1, fontSize: '0.72em', width: 20, minWidth: 20, maxWidth: 28, fontFamily: 'monospace' }}>{playerVal}</TableCell>
+                                {dealerValues.map(dealerVal => {
+                                    const action = strategyData[`${playerVal}-${dealerVal}`] || '-';
+                                    const highlighted = isHighlighted(playerVal, dealerVal);
+                                    const baseColor = actionColors[action] || 'background.paper';
+                                    return (
+                                        <TableCell
+                                            key={`${playerVal}-${dealerVal}`}
+                                            align="center"
+                                            sx={{
+                                                p: 0.1,
+                                                fontSize: '0.72em',
+                                                width: 20,
+                                                minWidth: 20,
+                                                maxWidth: 28,
+                                                fontFamily: 'monospace',
+                                                bgcolor: highlighted ? highlightColor : baseColor,
+                                                color: highlighted ? 'grey.900' : 'text.primary',
+                                                fontWeight: highlighted ? 'bold' : undefined,
+                                                border: highlighted ? 2 : 1,
+                                                borderColor: highlighted ? 'warning.dark' : 'divider',
+                                                transition: 'background 0.2s',
+                                                textAlign: 'center',
+                                            }}
+                                        >
+                                            {action}
+                                        </TableCell>
+                                    );
+                                })}
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+        </Box>
     );
 };
+
+const condensedLegend =
+  <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+    <Typography variant="caption" sx={{ fontWeight: 500, letterSpacing: 1, color: 'text.secondary' }}>
+      Legend: <b>S</b> = Stand,&nbsp; <b>H</b> = Hit,&nbsp; <b>D</b> = Double,&nbsp; <b>P</b> = Split,&nbsp; <b>R</b> = Surrender (if allowed, otherwise Hit)
+    </Typography>
+    <Typography variant="subtitle2" sx={{ mt: 1, color: 'text.disabled', fontStyle: 'italic', fontWeight: 400 }}>
+      Basic Strategy Reference (H17, DAS)
+    </Typography>
+  </Box>;
 
 const StrategyGuide: React.FC<StrategyGuideProps> = ({ highlightType, highlightPlayerKey, highlightDealerKey }) => {
     const [activeTab, setActiveTab] = useState<PlayerHandType>('hard');
@@ -76,49 +113,23 @@ const StrategyGuide: React.FC<StrategyGuideProps> = ({ highlightType, highlightP
     const getTableHighlightKeys = (tableType: PlayerHandType) => highlightType === tableType ? { playerKey: highlightPlayerKey, dealerKey: highlightDealerKey } : {};
 
     return (
-        <div id="strategy-guide-container" className="bs-table">
-            <h3>Basic Strategy Reference (H17, DAS)</h3>
-            <p>S: Stand, H: Hit, D: Double Down, P: Split, R: Surrender (R/H means Surrender if allowed, else Hit)</p>
-            <div className="tab-buttons">
-                <button
-                    className={`tab-button ${activeTab === 'hard' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('hard')}
-                >
-                    Hard Totals
-                </button>
-                <button
-                    className={`tab-button ${activeTab === 'soft' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('soft')}
-                >
-                    Soft Totals
-                </button>
-                <button
-                    className={`tab-button ${activeTab === 'pairs' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('pairs')}
-                >
-                    Pairs
-                </button>
-            </div>
-
-            <div className={`tab-content ${activeTab === 'hard' ? 'active' : ''}`}>
+        <Box id="strategy-guide-container" sx={{ mt: 4, mb: 2 }}>
+            <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} aria-label="strategy tabs" sx={{ mb: 2 }}>
+                <Tab label="Hard Totals" value="hard" />
+                <Tab label="Soft Totals" value="soft" />
+                <Tab label="Pairs" value="pairs" />
+            </Tabs>
+            <Box hidden={activeTab !== 'hard'}>
                 {renderStrategyTable("Hard Totals", hardTotalsData, "hard", getTableHighlightKeys('hard').playerKey, getTableHighlightKeys('hard').dealerKey)}
-            </div>
-            <div className={`tab-content ${activeTab === 'soft' ? 'active' : ''}`}>
+            </Box>
+            <Box hidden={activeTab !== 'soft'}>
                 {renderStrategyTable("Soft Totals", softTotalsData, "soft", getTableHighlightKeys('soft').playerKey, getTableHighlightKeys('soft').dealerKey)}
-            </div>
-            <div className={`tab-content ${activeTab === 'pairs' ? 'active' : ''}`}>
+            </Box>
+            <Box hidden={activeTab !== 'pairs'}>
                 {renderStrategyTable("Pairs", pairSplittingData, "pairs", getTableHighlightKeys('pairs').playerKey, getTableHighlightKeys('pairs').dealerKey)}
-            </div>
-
-            <div style={{ marginTop: '20px', fontSize: '0.8em', textAlign: 'center' }}>
-                <p><strong>Legend:</strong></p>
-                <p><span className="bs-action bs-s" style={{padding: '2px 5px', borderRadius: '3px', marginRight: '5px'}}>S</span> Stand</p>
-                <p><span className="bs-action bs-h" style={{padding: '2px 5px', borderRadius: '3px', marginRight: '5px'}}>H</span> Hit</p>
-                <p><span className="bs-action bs-d" style={{padding: '2px 5px', borderRadius: '3px', marginRight: '5px'}}>D</span> Double</p>
-                <p><span className="bs-action bs-p" style={{padding: '2px 5px', borderRadius: '3px', marginRight: '5px'}}>P</span> Split</p>
-                <p><span className="bs-action bs-r" style={{padding: '2px 5px', borderRadius: '3px', marginRight: '5px'}}>R</span> Surrender (if allowed, otherwise Hit)</p>
-            </div>
-        </div>
+            </Box>
+            {condensedLegend}
+        </Box>
     );
 };
 

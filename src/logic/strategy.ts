@@ -1,6 +1,6 @@
 // Basic strategy logic and highlight key generation
 import { Card, HighlightParams, PlayerHand } from './types';
-import { VALUES, GAME_RULES } from './blackjackUtils';
+import { VALUES } from './blackjackUtils';
 
 export function getStrategyKeysForHighlight(playerHandObj: PlayerHand | null, dealerCards: Card[], isDealerCardHidden: boolean): HighlightParams {
   if (!playerHandObj || playerHandObj.cards.length === 0 || !dealerCards || dealerCards.length === 0) {

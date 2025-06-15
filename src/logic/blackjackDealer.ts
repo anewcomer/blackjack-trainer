@@ -1,4 +1,4 @@
-import { Card, PlayerHand, DealerActionLogEntry } from './blackjackTypes';
+import { Card, DealerActionLogEntry } from './blackjackTypes';
 import { calculateHandValue, dealOneCard } from './blackjackUtils';
 import { GAME_RULES } from './blackjackConstants';
 
