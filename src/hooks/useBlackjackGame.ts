@@ -73,8 +73,8 @@ export const useBlackjackGame = (): BlackjackGameHook => {
   const determineGameOutcome = useCallback((isInitialBlackjackRound: boolean = false, playerHadInitialBlackjack: boolean = false) => {
     const finalDealerValue = calculateHandValue(dealerHand);
     const dealerBusted = finalDealerValue > 21;
-    let finalMessages: string[] = [];
-
+    
+    // Create outcome data for each hand
     const updatedPlayerHands: PlayerHand[] = playerHands.map(hand => {
         let handOutcome: PlayerHand['outcome'] = hand.outcome; // Preserve if already set (e.g. surrender, initial BJ)
         if (!handOutcome) { // Only determine if not already set
@@ -85,55 +85,99 @@ export const useBlackjackGame = (): BlackjackGameHook => {
             else if (playerValue < finalDealerValue) handOutcome = "Loss";
             else handOutcome = "Push";
         }
-        finalMessages.push(`Hand ${playerHands.indexOf(hand) + 1}: ${handOutcome}`);
         return { ...hand, outcome: handOutcome };
     });
 
+    // Create more visually-focused outcome message
+    let outcomeMessage = '';
+    let totalWins = 0;
+    let totalLosses = 0;
+    let totalPushes = 0;
+    
+    updatedPlayerHands.forEach(hand => {
+      if (hand.outcome === "Win") totalWins++;
+      else if (hand.outcome === "Loss") totalLosses++;
+      else if (hand.outcome === "Push") totalPushes++;
+    });
+    
+    // Create a friendly summary message
+    if (updatedPlayerHands.length === 1) {
+      const outcome = updatedPlayerHands[0].outcome;
+      if (outcome === "Win") {
+        outcomeMessage = updatedPlayerHands[0].isBlackjack ? "Blackjack! You win!" : "You win!";
+      } else if (outcome === "Loss") {
+        if (updatedPlayerHands[0].busted) outcomeMessage = "Busted! Dealer wins.";
+        else if (updatedPlayerHands[0].surrendered) outcomeMessage = "You surrendered.";
+        else outcomeMessage = "Dealer wins.";
+      } else {
+        outcomeMessage = "Push! It's a tie.";
+      }
+    } else {
+      // Multiple hands summary
+      outcomeMessage = `Results: ${totalWins} wins, ${totalLosses} losses, ${totalPushes} pushes`;
+    }
+
+    // Set all states in logical order
     setPlayerHands(updatedPlayerHands);
-    setMessage(finalMessages.join(' | '));
+    setMessage(outcomeMessage);
     setGameActive(false);
+    
+    // Log game history and update stats
     logRoundToHistory(updatedPlayerHands, dealerHand, currentRoundDealerActionsLog, isInitialBlackjackRound && calculateHandValue(dealerHand) === 21, playerHadInitialBlackjack);
 
     // Update session stats
     setSessionStats(prevStats => {
-        let newWins = prevStats.wins;
-        let newLosses = prevStats.losses;
-        let newPushes = prevStats.pushes;
-        updatedPlayerHands.forEach(hand => {
-            if (hand.outcome === "Win") newWins++;
-            else if (hand.outcome === "Loss") newLosses++;
-            else if (hand.outcome === "Push") newPushes++;
-        });
-        return { ...prevStats, wins: newWins, losses: newLosses, pushes: newPushes, handsPlayed: prevStats.handsPlayed + updatedPlayerHands.length };
+        return { 
+            ...prevStats, 
+            wins: prevStats.wins + totalWins, 
+            losses: prevStats.losses + totalLosses, 
+            pushes: prevStats.pushes + totalPushes, 
+            handsPlayed: prevStats.handsPlayed + updatedPlayerHands.length 
+        };
     });
   }, [dealerHand, playerHands, currentRoundDealerActionsLog, logRoundToHistory, setMessage, setPlayerHands, setGameActive, setSessionStats]);
 
   // --- ADVANCE OR DEALER TURN: Must be above all handlers that reference it ---
   const advanceOrDealerTurn = useCallback(() => {
     const allResolved = playerHands.every(h => h.busted || h.stood || h.surrendered);
+    
+    // Batch state updates to prevent flickering
     if (allResolved) {
+      // All hands are resolved, go to dealer's turn
       const { dealerPlayLogic } = require('../logic/blackjackDealer');
-      dealerPlayLogic(
-        dealerHand,
-        deck,
-        currentRoundDealerActionsLog,
-        setHideDealerFirstCard,
-        setMessage,
-        setDealerHand,
-        setDeck,
-        setCurrentRoundDealerActionsLog,
-        determineGameOutcome
-      );
+      
+      // Set message and reveal dealer's hole card
+      setMessage("Dealer's turn");
+      setHideDealerFirstCard(false);
+      
+      // Delay dealer play to allow animations to complete
+      setTimeout(() => {
+        dealerPlayLogic(
+          dealerHand,
+          deck,
+          currentRoundDealerActionsLog,
+          setHideDealerFirstCard,
+          setMessage,
+          setDealerHand,
+          setDeck,
+          setCurrentRoundDealerActionsLog,
+          determineGameOutcome
+        );
+      }, 800);
     } else {
+      // Find next unresolved hand
       const nextIdx = playerHands.findIndex((h, i) => i > currentHandIndex && !h.busted && !h.stood && !h.surrendered);
+      
       if (nextIdx !== -1) {
+        // Batch these state updates together
         setCurrentHandIndex(nextIdx);
-        setMessage(`Now playing Hand ${nextIdx + 1}. What's your move?`);
+        setMessage(`Your move - Hand ${nextIdx + 1}`);
       } else {
         const firstIdx = playerHands.findIndex(h => !h.busted && !h.stood && !h.surrendered);
         if (firstIdx !== -1) {
+          // Batch these state updates together
           setCurrentHandIndex(firstIdx);
-          setMessage(`Now playing Hand ${firstIdx + 1}. What's your move?`);
+          setMessage(`Your move - Hand ${firstIdx + 1}`);
         }
       }
     }
@@ -292,12 +336,21 @@ export const useBlackjackGame = (): BlackjackGameHook => {
 
   const standHandler = useCallback(() => {
     if (!gameActive || !playerCanStand) return;
-    logPlayerAction('S');
+    
+    // Set message first
+    setMessage("Stand");
+    
+    // Update the player hand state
     setPlayerHands(prev => {
       const updated = prev.map((h, i) => (i === currentHandIndex ? { ...h, stood: true } as PlayerHand : h));
       return updated;
     });
-    setTimeout(advanceOrDealerTurn, 0);
+    
+    // Log action after player hand update for strategy evaluation
+    logPlayerAction('S');
+    
+    // Delay the next action to allow visual feedback to be seen
+    setTimeout(() => advanceOrDealerTurn(), 800);
   }, [gameActive, playerCanStand, currentHandIndex, logPlayerAction, setPlayerHands, advanceOrDealerTurn]);
 
   const doubleHandler = useCallback(() => {
@@ -309,6 +362,14 @@ export const useBlackjackGame = (): BlackjackGameHook => {
     const newCards = [...handBeforeDouble.cards, card];
     const newHandValue = calculateHandValue(newCards);
 
+    // Set appropriate message based on outcome
+    if (newHandValue > 21) {
+      setMessage(`Doubled with ${card.rank}${card.suit} and busted!`);
+    } else {
+      setMessage(`Doubled with ${card.rank}${card.suit} for ${newHandValue}`);
+    }
+
+    // Update hand state
     setPlayerHands(prev => {
         const newHands = [...prev];
         const currentHandUpdate: PlayerHand = {
@@ -322,19 +383,31 @@ export const useBlackjackGame = (): BlackjackGameHook => {
         return newHands;
     });
 
+    // Log action for strategy feedback
     logPlayerAction('D', card);
 
-    if (newHandValue > 21) {
-      setMessage(`Hand ${currentHandIndex + 1} Doubled and Busted!`);
-    }
-    setTimeout(advanceOrDealerTurn, 0);
+    // Delay to allow visual feedback
+    setTimeout(() => advanceOrDealerTurn(), 1000);
   }, [gameActive, playerCanDouble, deck, currentHandIndex, playerHands, logPlayerAction, setMessage, setDeck, setPlayerHands, advanceOrDealerTurn]);
 
   const surrenderHandler = useCallback(() => {
     if (!gameActive || !playerCanSurrender) return;
+    
+    // Set message first for visual feedback
+    setMessage("Surrendered");
+    
+    // Update hand state
+    setPlayerHands(prev => prev.map((h, i) => 
+      i === currentHandIndex ? 
+        { ...h, surrendered: true, stood: true, outcome: "Loss" } as PlayerHand : 
+        h
+    ));
+    
+    // Log action for strategy evaluation
     logPlayerAction('R');
-    setPlayerHands(prev => prev.map((h, i) => i === currentHandIndex ? { ...h, surrendered: true, stood: true, outcome: "Loss" } as PlayerHand : h));
-    setTimeout(advanceOrDealerTurn, 0);
+    
+    // Delay to allow visual feedback
+    setTimeout(() => advanceOrDealerTurn(), 1000);
   }, [gameActive, playerCanSurrender, currentHandIndex, logPlayerAction, setPlayerHands, advanceOrDealerTurn]);
 
   const splitHandler = useCallback(() => {

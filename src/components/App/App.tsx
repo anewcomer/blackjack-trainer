@@ -11,7 +11,7 @@ const App: React.FC = () => {
     playerHands,
     currentHandIndex,
     dealerHand,
-    // gameActive, // Not directly used by App's JSX, but hook manages it
+    gameActive,
     message,
     hideDealerFirstCard,
     highlightParams,
@@ -49,6 +49,9 @@ const App: React.FC = () => {
               currentHandIndex={currentHandIndex}
               hideDealerFirstCard={hideDealerFirstCard}
               getHandScoreText={getHandScoreText}
+              gameActive={gameActive}
+              message={message}
+              recentAction={playerHands[currentHandIndex]?.actionsTakenLog?.slice(-1)[0]}
             />
             <Actions
               onNewGame={newGameHandler}
@@ -61,11 +64,6 @@ const App: React.FC = () => {
               playerCanHit={playerCanHit} playerCanStand={playerCanStand} playerCanDouble={playerCanDouble}
               playerCanSplit={playerCanSplit} playerCanSurrender={playerCanSurrender}
             />
-            {message && (
-              <Alert severity="info" sx={{ mt: 2, width: '100%' }}>
-                {message}
-              </Alert>
-            )}
           </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <StrategyGuide
