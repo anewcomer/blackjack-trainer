@@ -28,6 +28,19 @@
 				"$eslint-stylish"
 			],
 			"isBackground": false
+		},
+		{
+			"type": "shell",
+			"label": "Run tests once",
+			"command": "npm test -- --watchAll=false",
+			"group": "test",
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated",
+				"clear": true
+			},
+			"problemMatcher": [],
+			"isBackground": false
 		}
 	]
 }

@@ -1,6 +1,34 @@
 # Blackjack Trainer Project Notes
 
-## Project Milestones & Progress
+## Project Overview
+
+This document tracks the progress, improvements, features, and future plans for the Blackjack Trainer application. It serves as a central reference for anyone working on the project.
+
+## Recent Features and Fixes
+
+### Enhanced Card Component (Completed June 2025)
+- ✅ Added a visually appealing card back with gradients and patterns
+- ✅ Improved card face design for better aesthetics
+- ✅ Doubled card size from 40x60px to 80x120px with proportional internal elements
+- ✅ Fixed animation for dealer hole card so it no longer fades out or flies away
+
+### Strategy Highlight Improvements (Completed June 2025)
+- ✅ Fixed strategy highlight tool to update after player actions (hit, double)
+- ✅ Ensured strategy guide accurately reflects current hand state
+
+### Testing Infrastructure (Completed June 2025)
+- ✅ Added VS Code task for running tests without watch mode
+- ✅ Fixed all linting and TypeScript errors in test files
+- ✅ Set up proper mocking patterns for complex components
+
+### Fixed Errors and Issues (Completed June 2025)
+- ✅ Fixed all TypeScript and linting errors across the project
+- ✅ Fixed broken tests and updated test assertions
+- ✅ Added proper mocks for Framer Motion and other dependencies
+- ✅ Fixed ARIA role/label issues in components and tests
+- ✅ Modified query parameter support to be one-way only (URL → state, not state → URL)
+
+## Completed Milestones
 
 ### Architecture Improvements
 
@@ -156,9 +184,7 @@
   - ✅ Added support for dealer and player hand setting
   - ✅ Added documentation for query string usage
 
-## Recent Features
-
-### Query String Parameters for Game Setup
+### Query String Parameters for Game Setup (Completed May 2025)
 
 Added support for setting the dealer and player hands via URL query parameters, useful for testing and debugging:
 
@@ -176,59 +202,156 @@ http://localhost:3000/?dealer=AS,KH&player=9D,10C
 
 Implementation details:
 - Created utility functions for parsing query parameters
-- Added URL state management
+- Modified to use query string only for initialization (one-way: URL → state)
 - Implemented auto-standing for test scenarios
 - Enhanced documentation
 
+## Recent Features and Fixes
+
+### Enhanced Card Component
+- ✅ Added a visually appealing card back with gradients and patterns
+- ✅ Improved card face design for better aesthetics
+- ✅ Doubled card size from 40x60px to 80x120px with proportional internal elements
+- ✅ Fixed animation for dealer hole card so it no longer fades out or flies away
+
+### Strategy Highlight Improvements
+- ✅ Fixed strategy highlight tool to update after player actions (hit, double)
+- ✅ Ensured strategy guide accurately reflects current hand state
+
+
+
+### Fixed Errors and Issues
+- ✅ Fixed all TypeScript and linting errors across the project
+- ✅ Fixed broken tests and updated test assertions
+- ✅ Added proper mocks for Framer Motion and other dependencies
+- ✅ Fixed ARIA role/label issues in components and tests
+- ✅ Added VS Code task to run tests without watch mode
+
+## Testing Strategy and Implementation
+
+### Testing Approach
+
+We use a multi-layered testing strategy with Jest and React Testing Library:
+
+1. **Unit Tests**: Verify individual functions and components work correctly in isolation
+2. **Component Tests**: Validate UI components render correctly with different props/states
+3. **Integration Tests**: Ensure different parts of the application work together properly
+4. **End-to-End Tests**: Browser-based tests to validate complete user flows (planned for future)
+
+### Testing Infrastructure
+
+- ✅ Set up Jest with React Testing Library
+- ✅ Created consistent mocking patterns for complex components
+- ✅ Added VS Code task for running tests without watch mode
+- ✅ Fixed all linting and TypeScript errors in test files
+
+### Implemented Tests
+
+| Category | Test File | Coverage |
+|---------|----------|----------|
+| **Utility Tests** | `blackjackUtils.test.ts` | Hand value calculation, deck creation, card dealing |
+| | `queryParamsUtils.test.ts` | URL parameter parsing, game state handling |
+| **Hook Tests** | `useGameActions.test.ts` | Game actions (hit, stand, etc.) |
+| | `useGameState.test.ts` | Game state management |
+| **Component Tests** | `Card.test.tsx` | Card rendering in various states |
+| | `GameArea.test.tsx` | Game area composition and rendering |
+| | `Actions.test.tsx` | Game action buttons |
+| | `HandArea.test.tsx` | Player and dealer hand areas |
+| **Context Tests** | `BlackjackContext.test.tsx` | Context provider functionality |
+
+### Running Tests
+
+```bash
+# Run all tests (watch mode)
+npm test
+
+# Run tests once without watch mode
+npm test -- --watchAll=false
+
+# Run tests with coverage report
+npm test -- --coverage
+
+# Run specific tests
+npm test -- ComponentName
+```
+
 ## Future Improvements
 
-### Testing
-- ✅ Add unit tests for utility functions
-- ✅ Add component tests
-- ✅ Add unit tests for game hooks and logic
-- ⬜ Add additional component tests for complex UI components
-- ⬜ Add integration tests for game flow
-- ⬜ Add accessibility testing
-- ⬜ Add end-to-end browser tests (planned for future)
-- ⬜ Add browser tests (planned for later)
+### High Priority
 
-### Animation Enhancements
-- ⬜ Add dealer card flip animation when hand is complete
-- ⬜ Add win/loss celebration animations
-- ⬜ Add card shuffle animation
+| Area | Task | Status | Description |
+|------|------|--------|-------------|
+| **Testing** | Integration tests for game flow | ⬜ Planned | Test complete game scenarios |
+| | Accessibility testing | ⬜ Planned | Verify screen reader compatibility |
+| **Animation** | Dealer card flip animation | ⬜ Planned | Add flip animation when dealer's hand is revealed |
+| **Development** | Test coverage reporting | ⬜ Planned | Add VS Code task for generating coverage reports |
 
-### Performance Optimizations
-- ⬜ Implement advanced memoization for more components
-- ⬜ Use Web Workers for expensive calculations
-- ⬜ Add code-splitting
+### Medium Priority
 
-### Accessibility Enhancements
-- ⬜ Add comprehensive automated accessibility testing
-- ⬜ Add sound effects with volume controls
-- ⬜ Improve card animations with ARIA live regions
+| Area | Task | Status | Description |
+|------|------|--------|-------------|
+| **Animation** | Win/loss celebration animations | ⬜ Planned | Add visual feedback for game outcomes |
+| **Accessibility** | Sound effects with volume controls | ⬜ Planned | Add audio feedback with accessibility options |
+| **Performance** | Component memoization | ⬜ Planned | Implement advanced memoization for more components |
+| **Development** | Task for running specific tests | ⬜ Planned | Add VS Code task to run individual test files |
 
-## Development Tips
+### Low Priority
 
-### Using the get_errors Tool
-Before running builds, use the `get_errors` tool to check for compilation issues:
-```
-Before checking code changes via the build process, use #get_errors to check files for issues.
-```
+| Area | Task | Status | Description |
+|------|------|--------|-------------|
+| **Testing** | End-to-end browser tests | ⬜ Future | Add Playwright tests for complete user flows |
+| **Animation** | Card shuffle animation | ⬜ Future | Add visual card shuffling animation |
+| **Performance** | Web Workers | ⬜ Future | Use Web Workers for expensive calculations |
+| | Code-splitting | ⬜ Future | Add code-splitting for better load times |
+| **Accessibility** | ARIA live region improvements | ⬜ Future | Enhance card animations with ARIA live regions |
 
-### Testing with Query Parameters
-Test different game scenarios using query parameters:
-```
-http://localhost:3000/?dealer=AS,KH&player=9D,10C
-```
+### Completed Improvements
 
-### Creating Utility Files
-For new functionality, create dedicated utility files rather than adding code to existing files:
-```
-Let's create a new utility file for handling the query parameters functionality.
-```
+| Area | Task | Status | Completion Date |
+|------|------|--------|----------------|
+| **Testing** | Unit tests for utility functions | ✅ Complete | May 2025 |
+| | Component tests | ✅ Complete | May 2025 |
+| | Unit tests for game hooks and logic | ✅ Complete | May 2025 |
+| **Development** | VS Code task for running tests without watch mode | ✅ Complete | June 2025 |
+| | Problem matchers for TypeScript and ESLint | ✅ Complete | June 2025 |
 
-### Documentation-First Approach
-Define features in documentation before implementation:
-```
-Let's start by documenting this feature in the README.md, then implement the code.
-```
+## Development Guidelines
+
+### Quick Reference
+
+| Task | Command/Approach |
+|------|-----------------|
+| Check for errors | Use `#get_errors` on files before building |
+| Run tests (watch mode) | `npm test` |
+| Run tests (once) | VS Code task: "Run tests once" or `npm test -- --watchAll=false` |
+| Run specific tests | `npm test -- ComponentName` |
+| Run build | VS Code task: "Run build" or `npm run build` |
+| Run lint | VS Code task: "Run lint" or `npm run lint` |
+
+### Best Practices
+
+#### Code Quality
+- Use `#get_errors` to check for compilation issues before building
+- Create dedicated utility files for new functionality
+- Follow TypeScript best practices with proper typing
+- Maintain consistent code style using ESLint
+
+#### Testing
+- Keep tests independent of each other
+- Write focused tests that test one behavior at a time
+- Use descriptive test names that explain the scenario
+- Test behavior, not implementation details
+- Use snapshots sparingly and intentionally
+
+#### Feature Development
+- Follow a documentation-first approach
+  - "Let's start by documenting this feature in the README.md, then implement the code."
+- Test game scenarios using query parameters
+  - Example: `http://localhost:3000/?dealer=AS,KH&player=9D,10C`
+- Update notes.md with progress for continuous documentation
+
+#### Accessibility
+- Ensure keyboard navigation works for all features
+- Provide proper ARIA attributes for custom components
+- Test with screen readers periodically
+- Support reduced motion preferences

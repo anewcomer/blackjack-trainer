@@ -1,5 +1,9 @@
 # GitHub Copilot Prompting Guide
 
+## Overview
+
+This guide provides best practices for working with GitHub Copilot in the Blackjack Trainer project.
+
 ## General Purpose Prompting Instructions
 
 ### 1. Be Specific and Clear
@@ -45,82 +49,84 @@
 - Ask for relevant documentation or resources when learning new concepts
 - Request examples from documentation to understand standard patterns
 
-## Recommended Practices from Current Session
+## Project-Specific Best Practices
 
-### 1. Use Check Tools Before Building
+### Code Quality and Testing
 
+#### Error Checking
 ```
 Before checking code changes via the build process, use #get_errors to check files for issues.
 ```
+- Use the `get_errors` tool to identify compilation errors, type issues, and other problems before running a build
+- After making multiple file changes, run error checks on all modified files
 
-Use the `get_errors` tool to identify compilation errors, type issues, and other problems before running a build. This saves time by quickly identifying issues that would cause build failures.
-
-### 2. Comprehensive Error Checking
-
-```
-Please check all modified files using #get_errors to ensure there are no compilation issues.
-```
-
-After making multiple file changes, run error checks on all modified files to ensure everything works together correctly.
-
-### 3. Testing with Query Parameters
-
-For web applications that support URL parameters, test features by constructing specific URLs:
-
+#### Testing Approaches
 ```
 Let's test the query parameter support using a URL like: http://localhost:3000/?dealer=AS,KH&player=9D,10C
 ```
+- For web applications, test features by constructing specific URLs with query parameters
+- Utilize browser interaction tools to navigate, click, and verify behavior in real-time
 
-### 4. Create Pull Request Documentation
+### Code Organization
 
-When implementing complex features, request pull request documentation:
-
+#### Creating Utility Files
 ```
-Create a pull_request.md file that documents all the changes for this feature, including code snippets, implementation details, and testing instructions.
+Let's create a new utility file for handling the query parameters functionality.
 ```
+- For new functionality, create dedicated utility files rather than adding code to existing files
+- Always review existing files before making changes to understand the current implementation
 
-### 5. Using Browser Tools for Testing
-
+#### Documentation
 ```
-Use #browser_* tools to test the web application functionality directly within the chat interface.
+Let's start by documenting this feature in the README.md, then implement the code.
 ```
+- Define features in documentation first to clarify requirements and usage
+- When implementing complex features, create pull request documentation with code snippets and testing instructions
 
-For web applications, utilize browser interaction tools to navigate, click, and verify behavior in real-time.
+### Project Management
 
-### 6. Creating Utility Files for New Features
-
+#### Tracking Progress
 ```
-Let's create a new utility file for handling the query parameters functionality, which will keep the code organized and maintainable.
+Update the notes.md document with relevant status so future Copilot sessions may pick up the context.
 ```
+- When a new feature is requested, add it to the project plan in notes.md
+- After significant progress on any feature, update notes.md with current status
+- Create comprehensive pull request documentation for each completed feature
 
-For new functionality, especially those that may be reused, create dedicated utility files rather than adding code to existing files.
+## Project Commands and Shortcuts
 
-### 7. Reading Files Before Modifying
+### VS Code Tasks
+- `Run build` - Builds the application using npm run build
+- `Run lint` - Runs ESLint on the project
+- `Run tests once` - Executes tests without watch mode
 
+### Common Testing Commands
+```bash
+# Run tests in watch mode
+npm test
+
+# Run tests without watch mode (one-time execution)
+npm test -- --watchAll=false
+
+# Run tests with coverage report
+npm test -- --coverage
+
+# Run specific test file or pattern
+npm test -- ComponentName
 ```
-Before modifying [file], let's examine its current structure and implementation to ensure our changes fit properly.
-```
-
-Always review existing files before making changes to understand the current implementation and integration points.
-
-### 8. Documentation-First Approach
-
-```
-Let's start by documenting this feature in the README.md, then implement the code based on our documentation plan.
-```
-
-Define the feature in documentation first to clarify requirements and usage before implementation.
-
-### 9. Saving Progress
-
-When a new feature is requested, add this to the project plan contained in [notes](./notes.md).
-
-When there has been significant progress made on any project feature, update the [notes](./notes.md) document with relevant status so that future Copilot sessions may pick up the context where it was left off.
 
 ## Finding Help
 
-If you need assistance with specific GitHub Copilot features or encounter issues:
+If you need assistance with GitHub Copilot or project-specific issues:
 
-1. Visit the [GitHub Copilot documentation](https://docs.github.com/en/copilot)
-2. Check the [GitHub Community Forum](https://github.community/)
-3. Explore AI assistance communities like [Stack Overflow](https://stackoverflow.com/) with the "github-copilot" tag
+| Resource | Description |
+|----------|-------------|
+| [GitHub Copilot Documentation](https://docs.github.com/en/copilot) | Official documentation and guides |
+| [GitHub Community Forum](https://github.community/) | Community support for GitHub products |
+| [Stack Overflow](https://stackoverflow.com/questions/tagged/github-copilot) | Questions tagged with "github-copilot" |
+| Project README.md | Application-specific documentation |
+| Project ARCHITECTURE.md | Details about the project structure |
+
+## Conclusion
+
+Following these prompting guidelines will help maximize the effectiveness of GitHub Copilot for the Blackjack Trainer project. Remember to keep notes updated with progress and maintain consistent code quality through regular testing and documentation.
