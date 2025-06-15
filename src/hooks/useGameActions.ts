@@ -11,7 +11,7 @@ import {
 } from '../logic';
 import { getOptimalPlay, getStrategyKeysForHighlight } from '../logic/blackjackStrategy';
 import { dealerPlayLogic } from '../logic/blackjackDealer';
-import { parseQueryParams, updateUrlWithGameState, shouldAutoPlayDealer } from '../logic/utils/queryParamsUtils';
+import { parseQueryParams, shouldAutoPlayDealer } from '../logic/utils/queryParamsUtils';
 
 /**
  * Interface for the game state required by useGameActions
@@ -383,8 +383,7 @@ export const useGameActions = (gameState: GameStateForActions) => {
         !(card.rank === playerCard2.rank && card.suit === playerCard2.suit)
       );
       
-      // Update the URL to reflect the current game state
-      updateUrlWithGameState([dealerCard1, dealerCard2], [playerCard1, playerCard2]);
+      // Note: Query parameters are only used for initialization, we don't update the URL
     } else {
       // Deal cards normally
       console.log("Dealing cards normally (no valid query parameters)");
@@ -406,8 +405,7 @@ export const useGameActions = (gameState: GameStateForActions) => {
       finalDeck = finalUpdatedDeck;
       console.log(`Dealt dealer card 2 (up card): ${dealerCard2.rank}${dealerCard2.suit}`);
       
-      // Update the URL with the dealt cards
-      updateUrlWithGameState([dealerCard1, dealerCard2], [playerCard1, playerCard2]);
+      // Note: We don't update URL when dealing normal cards, only use query params for initialization
     }
     
     // Handle additional cards from query parameters if present
@@ -629,6 +627,16 @@ export const useGameActions = (gameState: GameStateForActions) => {
     // Update the player hands state
     setPlayerHands(updatedHandsWithLog);
     
+    // Update strategy highlighting for the new hand state (unless busted)
+    if (!busted) {
+      const newHighlightKeys = getStrategyKeysForHighlight(
+        updatedHandsWithLog[currentHandIndex],
+        gameState.dealerHand,
+        gameState.hideDealerFirstCard
+      );
+      setHighlightParams({...newHighlightKeys});
+    }
+    
     if (busted) {
       setMessage("Busted! Value over 21");
       // Proceed to next hand or dealer's turn after a short delay
@@ -638,7 +646,8 @@ export const useGameActions = (gameState: GameStateForActions) => {
       }, 1000);
     }
   }, [currentHandIndex, deck, playerHands, setDeck, setPlayerHands, 
-      advanceOrDealerTurn, setMessage, logPlayerAction]);
+      advanceOrDealerTurn, setMessage, logPlayerAction, gameState.dealerHand, 
+      gameState.hideDealerFirstCard, setHighlightParams]);
 
   /**
    * Handler for player standing (no more cards)
@@ -729,6 +738,14 @@ export const useGameActions = (gameState: GameStateForActions) => {
     // Update the player hands state
     setPlayerHands(newPlayerHands);
     
+    // Update strategy highlighting for the new hand state (even though hand is done)
+    const newHighlightKeys = getStrategyKeysForHighlight(
+      newPlayerHands[currentHandIndex],
+      gameState.dealerHand,
+      gameState.hideDealerFirstCard
+    );
+    setHighlightParams({...newHighlightKeys});
+    
     if (busted) {
       setMessage("Doubled and busted! Value over 21");
     } else {
@@ -741,7 +758,8 @@ export const useGameActions = (gameState: GameStateForActions) => {
       advanceOrDealerTurn(newPlayerHands, true); // Force dealer's turn since this hand is done
     }, 1000);
   }, [currentHandIndex, deck, playerHands, setDeck, setPlayerHands, 
-      advanceOrDealerTurn, setMessage, logPlayerAction]);
+      advanceOrDealerTurn, setMessage, logPlayerAction, gameState.dealerHand, 
+      gameState.hideDealerFirstCard, setHighlightParams]);
 
   /**
    * Handler for player splitting a pair

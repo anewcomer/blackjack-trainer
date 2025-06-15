@@ -5,7 +5,6 @@ import * as queryParamsUtils from '../logic/utils/queryParamsUtils';
 // Mock the dependencies
 jest.mock('../logic/utils/queryParamsUtils', () => ({
   parseQueryParams: jest.fn(),
-  updateUrlWithGameState: jest.fn(),
   shouldAutoPlayDealer: jest.fn().mockReturnValue(false)
 }));
 
@@ -109,7 +108,7 @@ describe('useGameActions Hook', () => {
     // Check that the cards from URL were used
     expect(mockGameState.setDealerHand).toHaveBeenCalled();
     expect(mockGameState.setPlayerHands).toHaveBeenCalled();
-    expect(queryParamsUtils.updateUrlWithGameState).toHaveBeenCalled();
+    // Note: We no longer update the URL, only read from it for initialization
   });
 
   test('hitHandler should add a card to the current player hand', () => {

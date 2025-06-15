@@ -8,7 +8,7 @@ import {
   createNewDeck, 
   shuffleDeck 
 } from '../logic/blackjackUtils';
-import { parseQueryParams, updateUrlWithGameState } from '../logic/utils/queryParamsUtils';
+import { parseQueryParams } from '../logic/utils/queryParamsUtils';
 
 /**
  * The new game handler function factory - creates a new game with query string support
@@ -78,11 +78,7 @@ export const createNewGameHandler = (
         return !allCardsToRemove.some(c => c.rank === card.rank && c.suit === card.suit);
       });
       
-      // Update the URL to reflect the current game state
-      updateUrlWithGameState(
-        [dealerCard1, dealerCard2, ...additionalDealerCards], 
-        [playerCard1, playerCard2, ...additionalPlayerCards]
-      );
+      // Note: Query parameters are only used for initialization, we don't update the URL
     } else {
       // Deal cards normally
       console.log("Dealing cards normally (no valid query parameters)");
@@ -104,8 +100,7 @@ export const createNewGameHandler = (
       finalDeck = finalUpdatedDeck;
       console.log(`Dealt dealer card 2 (up card): ${dealerCard2.rank}${dealerCard2.suit}`);
       
-      // Update the URL with the dealt cards
-      updateUrlWithGameState([dealerCard1, dealerCard2], [playerCard1, playerCard2]);
+      // Note: We don't update URL when dealing normal cards, only use query params for initialization
     }
     
     // Create player hand with all cards

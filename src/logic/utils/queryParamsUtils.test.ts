@@ -1,9 +1,8 @@
 import { 
   parseQueryParams, 
-  updateUrlWithGameState,
   shouldAutoPlayDealer
 } from './queryParamsUtils';
-import { Card, PlayerHand } from '../blackjackTypes';
+import { PlayerHand } from '../blackjackTypes';
 
 // Mock window.location methods that are read-only in JSDOM
 const mockLocation = {
@@ -75,37 +74,7 @@ describe('parseQueryParams', () => {
   });
 });
 
-describe('updateUrlWithGameState', () => {
-  test('should update URL with current game state', () => {
-    const dealerCards: Card[] = [
-      { rank: 'A', suit: '♠', value: 11, id: 'A-♠-1' },
-      { rank: '10', suit: '♥', value: 10, id: '10-♥-1' }
-    ];
-    
-    const playerHand: Card[] = [
-      { rank: 'Q', suit: '♦', value: 10, id: 'Q-♦-1' },
-      { rank: '7', suit: '♣', value: 7, id: '7-♣-1' }
-    ];
-    
-    updateUrlWithGameState(dealerCards, playerHand);
-    
-    expect(window.history.replaceState).toHaveBeenCalledWith(
-      {},
-      '',
-      expect.stringContaining('?dealer=AS,10H&player=QD,7C')
-    );
-  });
-  
-  test('should handle empty hands', () => {
-    updateUrlWithGameState([], []);
-    
-    expect(window.history.replaceState).toHaveBeenCalledWith(
-      {},
-      '',
-      expect.stringContaining('?dealer=&player=')
-    );
-  });
-});
+// Note: updateUrlWithGameState functionality is disabled - we only read from URL for initialization
 
 describe('shouldAutoPlayDealer', () => {
   test('should return true when all player hands are stood', () => {
