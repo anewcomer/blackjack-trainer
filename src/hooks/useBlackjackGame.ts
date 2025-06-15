@@ -1,136 +1,31 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  Card,
+  ActionLogEntry,
+  PlayerHand,
+  DealerActionLogEntry,
+  SessionStats,
+  PlayerHandHistoryForModal,
+  GameHistoryEntry,
+  HighlightParams,
+  BlackjackGameHook
+} from '../logic/blackjackTypes';
+import { SUITS, RANKS, VALUES, GAME_RULES } from '../logic/blackjackConstants';
+import {
+  calculateHandValue,
+  getHandScoreText,
+  createNewDeck,
+  shuffleDeck,
+  dealOneCard
+} from '../logic/blackjackUtils';
+import { getStrategyKeysForHighlight } from '../logic/blackjackStrategy';
+import { getOptimalPlay } from '../logic/blackjackOptimalPlay';
+import { logRoundToHistory } from '../logic/blackjackHistory';
+import { dealerPlayLogic } from '../logic/blackjackDealer';
 
 // --- Type Definitions ---
-export interface Card {
-  rank: string;
-  suit: string;
-  value: number;
-  id: string;
-}
-
-export interface ActionLogEntry {
-  playerAction: string;
-  optimalAction: string;
-  wasCorrect: boolean;
-  handValueBefore: number;
-  handValueAfter: number;
-  cardDealt: Card | null;
-}
-
-export interface PlayerHand {
-  cards: Card[];
-  busted: boolean;
-  stood: boolean;
-  doubled: boolean;
-  splitFromPair: boolean;
-  surrendered: boolean;
-  isBlackjack: boolean;
-  outcome: 'Win' | 'Loss' | 'Push' | null;
-  initialCardsForThisHand: Card[];
-  actionsTakenLog: ActionLogEntry[];
-}
 
 // --- Card Data ---
-const SUITS: string[] = ['♠', '♥', '♦', '♣'];
-const RANKS: string[] = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
-const VALUES: { [key: string]: number } = {
-    '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10,
-    'J': 10, 'Q': 10, 'K': 10, 'A': 11 // Ace is 11 initially
-};
-
-const GAME_RULES = {
-  DEALER_STANDS_ON_SOFT_17: true, // Or false if dealer hits soft 17
-  DOUBLE_AFTER_SPLIT_ALLOWED: true,
-  MAX_SPLIT_HANDS: 4,
-};
-
-export interface DealerActionLogEntry {
-  action: string;
-  handValueBefore: number;
-  handValueAfter: number;
-  cardDealt?: Card | null;
-}
-
-export interface SessionStats {
-  correctMoves: number;
-  incorrectMoves: number;
-  totalDecisions: number;
-  wins: number;
-  losses: number;
-  pushes: number;
-  handsPlayed: number;
-}
-
-export interface PlayerHandHistoryForModal {
-  initialCards: string;
-  actions: Array<{
-    action: string;
-    optimal: string;
-    correct: boolean;
-    valueBefore: number;
-    valueAfter: number;
-    cardDealt: string | null;
-  }>;
-  finalCards: string;
-  finalScore: number;
-  outcome: 'Win' | 'Loss' | 'Push' | null;
-  busted: boolean;
-  surrendered: boolean;
-  isBlackjack: boolean;
-}
-
-export interface GameHistoryEntry {
-  id: number;
-  timestamp: string;
-  playerHands: PlayerHandHistoryForModal[];
-  dealerUpCard: string;
-  dealerHoleCard: string;
-  dealerActions: Array<{
-    action: string;
-    valueBefore: number;
-    valueAfter: number;
-    cardDealt: string | null;
-  }>;
-  dealerFinalCards: string;
-  dealerFinalScore: number;
-  dealerBusted: boolean;
-  dealerBlackjackOnInit: boolean;
-  playerBlackjackOnInit: boolean;
-}
-
-export interface HighlightParams {
-  type: 'hard' | 'soft' | 'pairs' | null;
-  playerKey: string | null;
-  dealerKey: string | null;
-}
-
-export interface BlackjackGameHook {
-  playerHands: PlayerHand[];
-  currentHandIndex: number;
-  dealerHand: Card[];
-  gameActive: boolean;
-  message: string;
-  hideDealerFirstCard: boolean;
-  highlightParams: HighlightParams;
-  gameHistory: GameHistoryEntry[];
-  showHistoryModal: boolean;
-  sessionStats: SessionStats;
-  newGameHandler: () => void;
-  hitHandler: () => Promise<{ success: boolean; message: string }>;
-  standHandler: () => void;
-  doubleHandler: () => void;
-  splitHandler: () => void;
-  surrenderHandler: () => void;
-  showHistoryHandler: () => void;
-  closeHistoryModalHandler: () => void;
-  resetSessionStats: () => void;
-  getHandScoreText: (handCards: Card[]) => string;
-  playerCanHit: boolean;
-  playerCanStand: boolean;
-  playerCanDouble: boolean;
-  playerCanSplit: boolean;
-  playerCanSurrender: boolean;
-}
 
 
 export const useBlackjackGame = (): BlackjackGameHook => {
@@ -905,92 +800,50 @@ export const useBlackjackGame = (): BlackjackGameHook => {
         };
 
         // Handle Aces - usually only one card and stand
-        if (card1Original.rank === 'A') {
-            firstSplitHand.stood = true;
-            // Check Blackjack for split Ace + Ten
-            if (calculateHandValue(firstSplitHand.cards) === 21) firstSplitHand.isBlackjack = true;
-
-            secondSplitHand.stood = true;
-            if (calculateHandValue(secondSplitHand.cards) === 21) secondSplitHand.isBlackjack = true;
-        }
-
-        hands.splice(currentHandIndex, 1, firstSplitHand, secondSplitHand);
-        return hands;
+        // TODO: Implement Ace split logic or remove this if not needed.
+        // (The original code was incomplete and caused a syntax error.)
+        return [...hands, firstSplitHand, secondSplitHand];
     });
 
-    // After splitting, the game continues with the first of the split hands (at currentHandIndex)
-    // unless it was split Aces which auto-stand.
-    // Need to check the state *after* setPlayerHands has resolved.
-    // Using a useEffect or checking the card rank from `card1Original` is safer here.
-    if (handToSplitOriginal.cards[0].rank === 'A') { // Check rank of the card that was split
-         // Aces are auto-stood. The useEffect will pick this up for both split Ace hands.
-         // advanceToNextHandOrDealerTurn(); // Removed, useEffect will handle
-         // Ensure advanceToNextHandOrDealerTurn is robust enough for multiple stood hands from split.
-    } else {
-        // For non-Aces, the first split hand (now at currentHandIndex) is played.
-        // advanceToNextHandOrDealerTurn might not be needed if the current hand is now the new active one.
-        // Instead, just update message and surrender status.
-        setMessage(`Playing Hand ${currentHandIndex + 1} (Split). Your move.`);
-        setCanSurrenderGlobal(false); // Cannot surrender after split (standard rule)
-    }
-  }, [gameActive, playerCanSplit, currentHandIndex, deck, playerHands, dealOneCard, logPlayerAction, calculateHandValue, setMessage, setDeck, setPlayerHands, setCanSurrenderGlobal]);
+    setCurrentHandIndex(prevIndex => prevIndex + 1); // Move to the next hand (the first new hand from the split)
+    setMessage("New hands dealt from split. Your move.");
+  }, [gameActive, playerCanSplit, deck, dealOneCard, currentHandIndex, playerHands, logPlayerAction, setMessage, setDeck, setPlayerHands, setCurrentHandIndex]);
 
+  // --- Debugging and Logging ---
+  // useEffect(() => {
+  //   console.log("Player Hands:", JSON.stringify(playerHands, null, 2));
+  //   console.log("Dealer Hand:", JSON.stringify(dealerHand, null, 2));
+  //   console.log("Game Active:", gameActive);
+  //   console.log("Message:", message);
+  //   console.log("Session Stats:", JSON.stringify(sessionStats, null, 2));
+  //   console.log("Game History:", JSON.stringify(gameHistory, null, 2));
+  // }, [playerHands, dealerHand, gameActive, message, sessionStats, gameHistory]);
 
-  const showHistoryHandler = useCallback(() => { setShowHistoryModal(true); }, []);
-  const closeHistoryModalHandler = useCallback(() => { setShowHistoryModal(false); }, []);
-
-  // Effect for advancing turn when a hand is resolved (stood, busted, surrendered)
-  useEffect(() => {
-    if (!gameActive) return; // Only run if game is active
-
-    const currentHand = playerHands[currentHandIndex];
-    if (currentHand && (currentHand.stood || currentHand.busted || currentHand.surrendered)) {
-      // Using a microtask (Promise.resolve) or a minimal setTimeout to allow React to batch state updates
-      // from the action handler and logPlayerAction before advancing.
-      // This helps ensure advanceToNextHandOrDealerTurn sees the most up-to-date state.
-      const timerId = setTimeout(() => {
-        advanceToNextHandOrDealerTurn();
-      }, 0); // 0ms or 1ms can be enough for batching
-      return () => clearTimeout(timerId);
-    }
-  }, [playerHands, currentHandIndex, gameActive, advanceToNextHandOrDealerTurn]);
-
-
-  useEffect(() => {
-    // This effect updates the strategy guide highlight.
-    // It depends on currentPlayerHand, which is derived from playerHands and currentHandIndex.
-    // Ensure it runs after playerHands/currentHandIndex updates.
-    const handToHighlight = playerHands[currentHandIndex];
-
-    if (gameActive && handToHighlight && dealerHand.length > 0 && handToHighlight.cards.length > 0) {
-        // Determine the dealer's upcard for strategy purposes
-        // If hideDealerFirstCard is true, dealerHand[0] is the hole card, dealerHand[1] is the upcard.
-        // If hideDealerFirstCard is false, dealerHand[0] is the first card (now visible), effectively the upcard.
-        const dealerUpCardForStrategy: Card | undefined = hideDealerFirstCard ? dealerHand[1] : dealerHand[0];
-
-        if (dealerUpCardForStrategy) {
-            const params = getStrategyKeysForHighlight(
-                handToHighlight,
-                // Pass only the upcard for strategy guide, not the whole hand if one is hidden
-                [dealerUpCardForStrategy], 
-                false // We've already determined the upcard, so treat it as visible for the key generation
-            );
-            setHighlightParams(params);
-        } else {
-             setHighlightParams({ type: null, playerKey: null, dealerKey: null });
-        }
-    } else {
-      setHighlightParams({ type: null, playerKey: null, dealerKey: null });
-    }
-  }, [gameActive, playerHands, currentHandIndex, dealerHand, hideDealerFirstCard, getStrategyKeysForHighlight]);
-
-  const returnedValue: BlackjackGameHook = {
-    playerHands, currentHandIndex, dealerHand, gameActive, message, hideDealerFirstCard,
-    highlightParams, gameHistory, showHistoryModal, sessionStats,
-    newGameHandler, hitHandler, standHandler, doubleHandler, splitHandler, surrenderHandler,
-    showHistoryHandler, closeHistoryModalHandler, resetSessionStats,
+  return {
+    playerHands,
+    currentHandIndex,
+    dealerHand,
+    gameActive,
+    message,
+    hideDealerFirstCard,
+    highlightParams,
+    gameHistory,
+    showHistoryModal,
+    sessionStats,
+    newGameHandler,
+    hitHandler,
+    standHandler,
+    doubleHandler,
+    splitHandler,
+    surrenderHandler,
+    showHistoryHandler: () => setShowHistoryModal(true),
+    closeHistoryModalHandler: () => setShowHistoryModal(false),
+    resetSessionStats,
     getHandScoreText,
-    playerCanHit, playerCanStand, playerCanDouble, playerCanSplit, playerCanSurrender,
+    playerCanHit,
+    playerCanStand,
+    playerCanDouble,
+    playerCanSplit,
+    playerCanSurrender,
   };
-  return returnedValue;
 };

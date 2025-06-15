@@ -23,15 +23,16 @@
     max-height: 85vh; /* Adjusted for better fit */
     overflow-y: auto;
     position: relative;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.7); /* Match from index.html */
     display: flex;
     flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.7); /* Match from index.html */
   }
   
   .modal-close-button {
-    position: sticky;
+    position: absolute;
     top: 10px;
     right: 20px; /* Match from index.html */
+    z-index: 10;
     background: none;
     border: none;
     font-size: 30px; /* Match from index.html */
@@ -40,7 +41,6 @@
     cursor: pointer;
     color: #aaa; /* Match from index.html */
     transition: color 0.3s ease; /* Match from index.html */
-    z-index: 3;
   }
   .modal-close-button:hover {
     color: #e0e0e0; /* Match from index.html */
