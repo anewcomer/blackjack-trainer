@@ -13,6 +13,7 @@ import {
 } from '../logic';
 import { getOptimalPlay } from '../logic/blackjackStrategy';
 import { getStrategyKeysForHighlight } from '../logic/blackjackStrategy';
+import { dealerPlayLogic } from '../logic/blackjackDealer';
 
 /**
  * Interface for the game state required by useGameActions
@@ -71,8 +72,24 @@ export const useGameActions = (gameState: GameStateForActions) => {
    * Determines the outcome of the game
    */
   const determineGameOutcome = useCallback((isInitialBlackjackRound: boolean = false, playerHadInitialBlackjack: boolean = false) => {
+    console.log("determineGameOutcome called with:", { 
+      isInitialBlackjackRound, 
+      playerHadInitialBlackjack,
+      dealerHand: dealerHand.map(c => `${c.rank}${c.suit}`),
+      playerHands: playerHands.map(h => ({
+        cards: h.cards.map(c => `${c.rank}${c.suit}`),
+        value: calculateHandValue(h.cards),
+        outcome: h.outcome,
+        isBlackjack: h.isBlackjack,
+        busted: h.busted,
+        stood: h.stood
+      }))
+    });
+
     const finalDealerValue = calculateHandValue(dealerHand);
     const dealerBusted = finalDealerValue > 21;
+    
+    console.log(`Dealer final value: ${finalDealerValue}, busted: ${dealerBusted}`);
     
     // Create outcome data for each hand
     const updatedPlayerHands: PlayerHand[] = playerHands.map(hand => {
@@ -80,12 +97,28 @@ export const useGameActions = (gameState: GameStateForActions) => {
       
       if (!handOutcome) { // Only determine if not already set
         const playerValue = calculateHandValue(hand.cards);
+        console.log(`Player hand value: ${playerValue}, dealer value: ${finalDealerValue}`);
         
-        if (hand.busted) handOutcome = "Loss";
-        else if (dealerBusted) handOutcome = "Win";
-        else if (playerValue > finalDealerValue) handOutcome = "Win";
-        else if (playerValue < finalDealerValue) handOutcome = "Loss";
-        else handOutcome = "Push";
+        if (hand.busted) {
+          console.log("Player busted, outcome is Loss");
+          handOutcome = "Loss";
+        }
+        else if (dealerBusted) {
+          console.log("Dealer busted, outcome is Win");
+          handOutcome = "Win";
+        }
+        else if (playerValue > finalDealerValue) {
+          console.log(`Player value ${playerValue} > dealer value ${finalDealerValue}, outcome is Win`);
+          handOutcome = "Win";
+        }
+        else if (playerValue < finalDealerValue) {
+          console.log(`Player value ${playerValue} < dealer value ${finalDealerValue}, outcome is Loss`);
+          handOutcome = "Loss";
+        }
+        else {
+          console.log(`Player value ${playerValue} = dealer value ${finalDealerValue}, outcome is Push`);
+          handOutcome = "Push";
+        }
       }
       
       return { ...hand, outcome: handOutcome };
@@ -131,31 +164,71 @@ export const useGameActions = (gameState: GameStateForActions) => {
    * Advances to the next unresolved hand or triggers the dealer's turn
    */
   const advanceOrDealerTurn = useCallback(() => {
-    const allResolved = playerHands.every((h: PlayerHand) => h.busted || h.stood || h.surrendered);
+    console.log("advanceOrDealerTurn called, checking if all hands resolved");
+    
+    // Create a local copy to prevent closure issues
+    const currentPlayerHands = [...playerHands];
+    const allResolved = currentPlayerHands.every((h: PlayerHand) => h.busted || h.stood || h.surrendered);
+    
+    console.log("All hands resolved?", allResolved);
+    console.log("Current hands status:", currentPlayerHands.map(h => ({
+      busted: h.busted,
+      stood: h.stood,
+      surrendered: h.surrendered,
+      outcome: h.outcome,
+      isBlackjack: h.isBlackjack
+    })));
+    
+    // Check if any hand already has an outcome (e.g., from blackjack)
+    const anyHandHasOutcome = currentPlayerHands.some(h => h.outcome !== null);
+    if (anyHandHasOutcome) {
+      console.log("Game outcome already determined, skipping dealer play");
+      return; // Skip dealer play if the outcome was already determined
+    }
     
     // Batch state updates to prevent flickering
     if (allResolved) {
       // All hands are resolved, go to dealer's turn
-      const { dealerPlayLogic } = require('../logic/blackjackDealer');
+      console.log("All hands resolved, starting dealer's turn");
       
       // Set message and reveal dealer's hole card
       setMessage("Dealer's turn");
       setHideDealerFirstCard(false);
       
-      // Delay dealer play to allow animations to complete
-      setTimeout(() => {
-        dealerPlayLogic(
-          dealerHand,
-          deck,
-          currentRoundDealerActionsLog,
-          setHideDealerFirstCard,
-          setMessage,
-          setDealerHand,
-          setDeck,
-          setCurrentRoundDealerActionsLog,
-          determineGameOutcome
-        );
-      }, 800);
+      // Capture current state values to avoid closure issues
+      const currentDealerHand = [...dealerHand];
+      const currentDeck = [...deck];
+      const currentLog = [...currentRoundDealerActionsLog];
+      
+      console.log("Dealer hand before play:", currentDealerHand.map(c => `${c.rank}${c.suit}`));
+      console.log("Dealer value before play:", calculateHandValue(currentDealerHand));
+      
+      // Force state updates to be applied before dealer logic
+      const timeoutId = setTimeout(() => {
+        console.log("Starting dealer play logic now");
+        
+        try {
+          // Use the imported dealerPlayLogic directly
+          dealerPlayLogic(
+            currentDealerHand, // Use captured state
+            currentDeck,
+            currentLog,
+            setHideDealerFirstCard,
+            setMessage,
+            setDealerHand,
+            setDeck,
+            setCurrentRoundDealerActionsLog,
+            determineGameOutcome
+          );
+        } catch (error) {
+          console.error("Error during dealer play:", error);
+          console.error(error);
+          // Fall back to determine outcome in case of error
+          determineGameOutcome(false, false);
+        }
+      }, 1500); // Increased delay for more reliable state updates
+      
+      return () => clearTimeout(timeoutId);
     } else {
       // Find next unresolved hand
       const nextIdx = playerHands.findIndex((h: PlayerHand, i: number) => i > currentHandIndex && !h.busted && !h.stood && !h.surrendered);
@@ -200,12 +273,18 @@ export const useGameActions = (gameState: GameStateForActions) => {
     const wasCorrect = action === optimalPlay;
     
     // Highlight the correct strategy box
-    const highlightKeys = getStrategyKeysForHighlight(
-      newPlayerHands[handIndex], 
-      [dealerUpCard], 
-      gameState.hideDealerFirstCard
-    );
-    setHighlightParams(highlightKeys);
+    try {
+      console.log("Getting highlight keys for strategy guide");
+      const highlightKeys = getStrategyKeysForHighlight(
+        newPlayerHands[handIndex], 
+        gameState.hideDealerFirstCard ? [gameState.dealerHand[0], gameState.dealerHand[1]] : [gameState.dealerHand[0]], 
+        gameState.hideDealerFirstCard
+      );
+      console.log("Setting highlightParams:", highlightKeys);
+      setHighlightParams({...highlightKeys}); // Force new object to trigger state update
+    } catch (error) {
+      console.error("Error setting highlight keys:", error);
+    }
     
     // Create a log entry for the action
     const handValueBefore = calculateHandValue(newPlayerHands[handIndex].cards);
@@ -234,12 +313,20 @@ export const useGameActions = (gameState: GameStateForActions) => {
   const newGameHandler = useCallback(() => {
     // Create a new deck and shuffle it
     const newDeck = shuffleDeck(createNewDeck());
+    console.log("New game started with shuffled deck");
     
     // Deal the initial cards
     const { card: playerCard1, updatedDeck: deck1 } = dealOneCard(newDeck);
+    console.log(`Dealt player card 1: ${playerCard1.rank}${playerCard1.suit}`);
+    
     const { card: dealerCard1, updatedDeck: deck2 } = dealOneCard(deck1);
+    console.log(`Dealt dealer card 1 (hole card): ${dealerCard1.rank}${dealerCard1.suit}`);
+    
     const { card: playerCard2, updatedDeck: deck3 } = dealOneCard(deck2);
+    console.log(`Dealt player card 2: ${playerCard2.rank}${playerCard2.suit}`);
+    
     const { card: dealerCard2, updatedDeck: finalDeck } = dealOneCard(deck3);
+    console.log(`Dealt dealer card 2 (up card): ${dealerCard2.rank}${dealerCard2.suit}`);
     
     // Create initial player hand
     const initialPlayerHand: PlayerHand = {
@@ -270,11 +357,17 @@ export const useGameActions = (gameState: GameStateForActions) => {
     setCurrentRoundDealerActionsLog([]);
     
     // Check for blackjack scenarios
+    console.log("Checking initial blackjack scenarios:");
+    console.log(`Player cards: ${playerCard1.rank}${playerCard1.suit}, ${playerCard2.rank}${playerCard2.suit} = ${playerValue}`);
+    console.log(`Dealer cards: ${dealerCard1.rank}${dealerCard1.suit}, ${dealerCard2.rank}${dealerCard2.suit} = ${dealerValue}`);
+    console.log(`Player blackjack: ${playerBlackjack}, Dealer blackjack: ${dealerValue === 21}`);
+    
     if (playerBlackjack || dealerValue === 21) {
       setHideDealerFirstCard(false);
       
       if (playerBlackjack && dealerValue === 21) {
         // Both have blackjack
+        console.log("OUTCOME: Both have blackjack - Push");
         setMessage("Both have Blackjack! Push!");
         setPlayerHands([{
           ...initialPlayerHand,
@@ -284,6 +377,7 @@ export const useGameActions = (gameState: GameStateForActions) => {
         }]);
       } else if (playerBlackjack) {
         // Player has blackjack
+        console.log("OUTCOME: Player has blackjack - Win");
         setMessage("Blackjack! You win!");
         setPlayerHands([{
           ...initialPlayerHand,
@@ -293,6 +387,7 @@ export const useGameActions = (gameState: GameStateForActions) => {
         }]);
       } else {
         // Dealer has blackjack
+        console.log("OUTCOME: Dealer has blackjack - Loss");
         setMessage("Dealer has Blackjack! You lose.");
         setPlayerHands([{
           ...initialPlayerHand,

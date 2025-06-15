@@ -119,10 +119,34 @@ export function dealerPlayLogic(
   }
   // Start dealer actions after a delay or finalize immediately if dealer has blackjack
   setTimeout(() => {
+    console.log("==== DEALER PLAY EXECUTION ====");
+    console.log(`Dealer initial hand: ${localDealerHand.map(c => `${c.rank}${c.suit}`).join(', ')}`);
+    console.log("Dealer initial value:", dealerInitialValue);
+    
+    // Extra validation to make sure we have a valid dealer hand
+    if (!Array.isArray(localDealerHand) || localDealerHand.length === 0) {
+      console.error("Invalid dealer hand received:", localDealerHand);
+      // Try to recover - just determine outcome
+      determineGameOutcome(false, false);
+      return;
+    }
+    
     if (dealerInitialValue === 21 && localDealerHand.length === 2) {
+      console.log("Dealer has natural blackjack, finalizing turn");
+      localDealerActionsLog.push({ 
+        action: 'Natural Blackjack', 
+        handValueBefore: 21, 
+        handValueAfter: 21 
+      });
+      setCurrentRoundDealerActionsLog([...localDealerActionsLog]);
       finalizeDealerTurn();
     } else {
-      setTimeout(performDealerHit, 1200);
+      console.log("Starting dealer hit/stand procedure");
+      // Make sure all states are current before proceeding
+      setDealerHand([...localDealerHand]);
+      setDeck([...localDeck]);
+      setCurrentRoundDealerActionsLog([...localDealerActionsLog]);
+      performDealerHit(); 
     }
   }, 1000); // Wait a bit after the card reveal before starting dealer actions
 }

@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import GameArea from '../GameArea/GameArea';
 import Actions from '../Actions/Actions';
 import StrategyGuide from '../StrategyGuide/StrategyGuide';
 import HistoryModal from '../HistoryModal/HistoryModal';
-import { BlackjackProvider } from '../../context/BlackjackContext';
+import { BlackjackProvider, useBlackjack } from '../../context/BlackjackContext';
 import { Box, Container, Typography } from '@mui/material';
 import useKeyboardNavigation from '../../hooks/useKeyboardNavigation';
 
@@ -12,8 +12,18 @@ import useKeyboardNavigation from '../../hooks/useKeyboardNavigation';
  * Enhanced with proper semantic HTML and accessibility features
  */
 const AppContent: React.FC = () => {
+  // Get the newGameHandler from context
+  const { newGameHandler } = useBlackjack();
+  
   // Add keyboard navigation support
   useKeyboardNavigation();
+  
+  // Start a new game when the component mounts
+  useEffect(() => {
+    newGameHandler();
+    // We only want to run this once when the app loads
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <Box 

@@ -103,12 +103,16 @@ const StrategyGuide: React.FC = () => {
     
     // For debugging
     useEffect(() => {
-        console.log(`StrategyGuide props: type=${highlightType}, player=${highlightPlayerKey}, dealer=${highlightDealerKey}`);
+        console.log(`StrategyGuide received: type=${highlightType}, player=${highlightPlayerKey}, dealer=${highlightDealerKey}`);
+        if (highlightType && highlightPlayerKey && highlightDealerKey) {
+            console.log("Should highlight a cell now");
+        }
     }, [highlightType, highlightPlayerKey, highlightDealerKey]);
 
     // Automatically switch to the correct tab when highlightType changes
     useEffect(() => {
         if (highlightType === 'hard' || highlightType === 'soft' || highlightType === 'pairs') {
+            console.log(`Switching strategy guide tab to: ${highlightType}`);
             setActiveTab(highlightType);
         }
     }, [highlightType]);

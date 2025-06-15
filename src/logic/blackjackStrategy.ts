@@ -3,13 +3,28 @@ import { VALUES } from './blackjackConstants';
 import { calculateHandValue } from './blackjackUtils';
 
 export function getStrategyKeysForHighlight(playerHandObj: PlayerHand | null, dealerCards: Card[], isDealerCardHidden: boolean): HighlightParams {
+  console.log("getStrategyKeysForHighlight called with:", {
+    playerHand: playerHandObj ? {
+      cards: playerHandObj.cards.map(c => `${c.rank}${c.suit}`),
+      value: playerHandObj.cards.length > 0 ? calculateHandValue(playerHandObj.cards) : 0
+    } : null,
+    dealerCards: dealerCards.map(c => `${c.rank}${c.suit}`),
+    isDealerCardHidden
+  });
+
   if (!playerHandObj || playerHandObj.cards.length === 0 || !dealerCards || dealerCards.length === 0) {
+    console.warn("Invalid inputs for getStrategyKeysForHighlight");
     return { type: null, playerKey: null, dealerKey: null };
   }
   
   // Get the appropriate dealer card based on whether the first card is hidden or not
   const dealerUpCard = isDealerCardHidden ? dealerCards[1] : dealerCards[0];
-  if (!dealerUpCard) return { type: null, playerKey: null, dealerKey: null };
+  if (!dealerUpCard) {
+    console.warn("No dealer up card available");
+    return { type: null, playerKey: null, dealerKey: null };
+  }
+
+  console.log(`Dealer up card: ${dealerUpCard.rank}${dealerUpCard.suit}`);
 
   // Normalize dealer card rank (10, J, Q, K all become T)
   const dealerRank = dealerUpCard.rank;
@@ -24,6 +39,8 @@ export function getStrategyKeysForHighlight(playerHandObj: PlayerHand | null, de
   const numPlayerCards = playerCards.length;
   const playerValue = calculateHandValue(playerCards);
   let type = null, playerKey = null;
+  
+  console.log(`Player hand: ${playerCards.map(c => `${c.rank}${c.suit}`).join(', ')}, value: ${playerValue}`);
 
   // Check for pairs first
   if (numPlayerCards === 2 && playerCards[0].rank === playerCards[1].rank) {
@@ -69,7 +86,11 @@ export function getStrategyKeysForHighlight(playerHandObj: PlayerHand | null, de
   // For debugging
   console.log(`Highlight params: type=${type}, playerKey=${playerKey}, dealerKey=${dealerKey}`);
   
-  return { type: type as HighlightParams['type'], playerKey, dealerKey };
+  // Ensure type is properly typed as a valid HighlightParams['type']
+  const typedType = type as HighlightParams['type'];
+  const result = { type: typedType, playerKey, dealerKey };
+  console.log("Returning highlight params:", result);
+  return result;
 }
 
 export function getOptimalPlay(

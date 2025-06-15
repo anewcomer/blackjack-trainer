@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Stack, Button, Box } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import PanToolIcon from '@mui/icons-material/PanTool';
@@ -8,6 +8,7 @@ import FlagIcon from '@mui/icons-material/Flag';
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import HistoryIcon from '@mui/icons-material/History';
 import { useBlackjack } from '../../context/BlackjackContext';
+import { motion } from 'framer-motion';
 
 /**
  * Actions component that displays all game action buttons
@@ -37,6 +38,11 @@ const Actions: React.FC = () => {
     >
       {/* Game action buttons - first row */}
       <Stack 
+        component={motion.div}
+        layout
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
         direction="row" 
         spacing={1} 
         sx={{ 
@@ -47,7 +53,11 @@ const Actions: React.FC = () => {
             sm: 'repeat(3, 1fr)',
             md: 'repeat(5, 1fr)'
           },
-          gap: 1
+          gap: 1,
+          '@media (prefers-reduced-motion: reduce)': {
+            animation: 'none !important',
+            transition: 'none !important'
+          }
         }}
         role="toolbar"
         aria-label="Player actions"
@@ -157,4 +167,5 @@ const Actions: React.FC = () => {
   );
 };
 
-export default Actions;
+// Memoize the entire Actions component to prevent unnecessary re-renders
+export default React.memo(Actions);
