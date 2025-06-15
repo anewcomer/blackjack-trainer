@@ -4,7 +4,7 @@ import Actions from '../Actions/Actions';
 import StrategyGuide from '../StrategyGuide/StrategyGuide';
 import HistoryModal from '../HistoryModal/HistoryModal';
 import { useBlackjackGame } from '../../hooks/useBlackjackGame';
-import { Box, Container, Typography, Alert } from '@mui/material';
+import { Box, Container, Typography } from '@mui/material';
 
 const App: React.FC = () => {
   const {
