@@ -1,9 +1,10 @@
-// Game area component - Phase 2 implementation with basic game flow
+// Game area component - Phase 6 implementation with accessibility and animations
 import React from 'react';
 import { Typography, Box, Button, Stack, Card, CardContent, Divider } from '@mui/material';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { startNewHand, playerAction } from '../../store/gameThunks';
 import { formatHandValue } from '../../utils/cardUtils';
+import AnimatedCard from './AnimatedCard';
 
 const GameArea: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -20,9 +21,37 @@ const GameArea: React.FC = () => {
   const currentPlayerHand = gameState.playerHands[gameState.currentHandIndex];
   const canPlay = gameState.gamePhase === 'PLAYER_TURN' && currentPlayerHand && !currentPlayerHand.busted && !currentPlayerHand.stood;
 
+  // Generate accessibility announcements
+  const getGameStateAnnouncement = () => {
+    if (gameState.gamePhase === 'INITIAL') return 'Ready to deal new hand';
+    if (gameState.gamePhase === 'PLAYER_TURN') return `Your turn, hand value: ${currentPlayerHand?.handValue}`;
+    if (gameState.gamePhase === 'DEALER_TURN') return 'Dealer is playing';
+    if (gameState.gamePhase === 'GAME_OVER') return 'Hand complete';
+    return '';
+  };
+
   return (
-    <Box sx={{ color: 'white', height: '100%', p: 2 }}>
-      <Typography variant="h4" gutterBottom align="center">
+    <Box
+      sx={{ color: 'white', height: '100%', p: 2 }}
+      role="main"
+      aria-label="Blackjack game area"
+    >
+      {/* Screen reader announcements */}
+      <Box
+        aria-live="polite"
+        aria-atomic="true"
+        sx={{
+          position: 'absolute',
+          left: '-10000px',
+          width: '1px',
+          height: '1px',
+          overflow: 'hidden'
+        }}
+      >
+        {getGameStateAnnouncement()}
+      </Box>
+
+      <Typography variant="h4" gutterBottom align="center" id="game-title">
         Blackjack Trainer
       </Typography>
 
@@ -33,38 +62,65 @@ const GameArea: React.FC = () => {
           size="large"
           onClick={handleNewHand}
           sx={{ minWidth: 150 }}
+          aria-describedby="game-instructions"
+          autoFocus={gameState.gamePhase === 'INITIAL'}
         >
           Deal New Hand
         </Button>
+        <Typography
+          id="game-instructions"
+          variant="body2"
+          sx={{ mt: 1, opacity: 0.8 }}
+        >
+          Press to start a new blackjack hand
+        </Typography>
       </Box>
 
       {/* Game State Display */}
-      <Stack spacing={3}>
+      <Stack spacing={3} role="region" aria-labelledby="game-title">
         {/* Dealer Area */}
-        <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white' }}>
+        <Card
+          sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white' }}
+          role="region"
+          aria-label="Dealer's hand"
+        >
           <CardContent>
-            <Typography variant="h6" gutterBottom>
+            <Typography variant="h6" gutterBottom id="dealer-label">
               Dealer
             </Typography>
             {gameState.dealerHand.cards.length > 0 ? (
               <>
-                <Typography variant="body1">
+                {/* Animated Cards Display */}
+                <Box sx={{ mb: 2 }}>
+                  <Stack direction="row" spacing={1} justifyContent="center">
+                    {gameState.dealerHand.cards.map((card, index) => (
+                      <AnimatedCard
+                        key={`dealer-${index}`}
+                        card={card}
+                        hidden={gameState.dealerHand.hideHoleCard && index === 1}
+                        index={index}
+                      />
+                    ))}
+                  </Stack>
+                </Box>
+
+                <Typography variant="body1" aria-describedby="dealer-label">
                   Cards: {gameState.dealerHand.cards.map((card, index) =>
                     gameState.dealerHand.hideHoleCard && index === 1
-                      ? '[Hidden]'
-                      : `${card.rank}${card.suit}`
+                      ? '[Hidden Card]'
+                      : `${card.rank} of ${card.suit}`
                   ).join(', ')}
                 </Typography>
                 <Typography variant="body1">
                   Value: {gameState.dealerHand.hideHoleCard && gameState.dealerHand.cards.length > 1
-                    ? `${gameState.dealerHand.cards[0].rank}${gameState.dealerHand.cards[0].suit} + [Hidden]`
+                    ? `${gameState.dealerHand.cards[0].rank} of ${gameState.dealerHand.cards[0].suit} plus hidden card`
                     : formatHandValue(gameState.dealerHand.cards)
                   }
                 </Typography>
               </>
             ) : (
               <Typography variant="body2" sx={{ opacity: 0.7 }}>
-                No cards dealt
+                No cards dealt yet
               </Typography>
             )}
           </CardContent>
@@ -92,8 +148,23 @@ const GameArea: React.FC = () => {
                   Hand {handIndex + 1} {handIndex === gameState.currentHandIndex ? '(Active)' : ''}
                   {hand.splitFromPair && ' (Split)'}
                 </Typography>
+
+                {/* Animated Cards Display */}
+                <Box sx={{ mb: 2 }}>
+                  <Stack direction="row" spacing={1} justifyContent="center" flexWrap="wrap">
+                    {hand.cards.map((card, cardIndex) => (
+                      <AnimatedCard
+                        key={`${hand.id}-${cardIndex}`}
+                        card={card}
+                        index={cardIndex}
+                        size={gameState.playerHands.length > 2 ? 'small' : 'medium'}
+                      />
+                    ))}
+                  </Stack>
+                </Box>
+
                 <Typography variant="body1">
-                  Cards: {hand.cards.map(card => `${card.rank}${card.suit}`).join(', ')}
+                  Cards: {hand.cards.map(card => `${card.rank} of ${card.suit}`).join(', ')}
                 </Typography>
                 <Typography variant="body1">
                   Value: {formatHandValue(hand.cards)}
@@ -151,13 +222,22 @@ const GameArea: React.FC = () => {
         </Stack>
 
         {/* Action Buttons */}
-        <Stack spacing={2} direction="row" justifyContent="center" flexWrap="wrap">
+        <Stack
+          spacing={2}
+          direction="row"
+          justifyContent="center"
+          flexWrap="wrap"
+          role="group"
+          aria-label="Blackjack game actions"
+        >
           <Button
             variant="contained"
             color="error"
             size="large"
             onClick={() => handlePlayerAction('HIT')}
             disabled={!canPlay}
+            aria-label="Hit - Take another card"
+            tabIndex={canPlay ? 0 : -1}
           >
             Hit
           </Button>
@@ -167,6 +247,8 @@ const GameArea: React.FC = () => {
             size="large"
             onClick={() => handlePlayerAction('STAND')}
             disabled={!canPlay}
+            aria-label="Stand - Keep current hand"
+            tabIndex={canPlay ? 0 : -1}
           >
             Stand
           </Button>
@@ -176,6 +258,8 @@ const GameArea: React.FC = () => {
             size="large"
             onClick={() => handlePlayerAction('DOUBLE')}
             disabled={!canPlay || currentPlayerHand?.cards.length !== 2}
+            aria-label="Double Down - Double bet and take one card"
+            tabIndex={canPlay && currentPlayerHand?.cards.length === 2 ? 0 : -1}
           >
             Double
           </Button>
@@ -185,6 +269,8 @@ const GameArea: React.FC = () => {
             size="large"
             onClick={() => handlePlayerAction('SPLIT')}
             disabled={!canPlay || !gameState.availableActions.includes('SPLIT')}
+            aria-label="Split - Separate matching cards into two hands"
+            tabIndex={canPlay && gameState.availableActions.includes('SPLIT') ? 0 : -1}
           >
             Split
           </Button>
@@ -194,6 +280,8 @@ const GameArea: React.FC = () => {
             size="large"
             onClick={() => handlePlayerAction('SURRENDER')}
             disabled={!canPlay || currentPlayerHand?.cards.length !== 2}
+            aria-label="Surrender - Give up hand for half bet back"
+            tabIndex={canPlay && currentPlayerHand?.cards.length === 2 ? 0 : -1}
           >
             Surrender
           </Button>
