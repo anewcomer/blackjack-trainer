@@ -16,7 +16,7 @@ import {
 import { useAppSelector } from '../../store/hooks';
 import { GameArea } from '../game';
 import { StrategyGuide } from '../strategy';
-import { SessionStats, MistakePatterns, SessionControls } from '../session';
+import { SessionStats, MistakePatterns, SessionControls, GameHistory } from '../session';
 
 const GameLayout: React.FC = () => {
   const gamePhase = useAppSelector((state: any) => state.game.gamePhase);
@@ -80,6 +80,7 @@ const GameLayout: React.FC = () => {
             <Stack spacing={3}>
               <SessionStats />
               <MistakePatterns />
+              <GameHistory />
             </Stack>
           </Box>
         </Stack>

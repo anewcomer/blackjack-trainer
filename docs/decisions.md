@@ -245,3 +245,42 @@ See `docs/issues.md` for detailed lessons learned and recurring problem preventi
 - **Real-time Updates**: Redux selectors work well for live UI updates
 - **Component Rendering**: Session analytics components are optimized
 - **Memory Management**: Need to consider multi-hand state cleanup
+
+## Development Workflow Rules
+
+### **🚫 Git Operations Restriction**
+**Decision**: Only the user is allowed to perform `git add` and `git commit` operations.
+
+**Rationale**:
+- **User Control**: Maintain full control over commit timing and messages
+- **Meaningful Commits**: Ensure commits represent logical development milestones
+- **Quality Assurance**: User can review changes before committing
+- **Workflow Integrity**: Prevent automated commits that may not align with development goals
+
+**Implementation**:
+- **Agent Responsibility**: Focus on code implementation and documentation
+- **User Responsibility**: Handle all git staging and commit operations
+- **Handoff Process**: Agent completes features and notifies user when ready for commit
+- **No Automated Git**: Agent will not use `run_in_terminal` for git operations
+
+**Examples**:
+```bash
+# ❌ AGENT CANNOT DO:
+git add .
+git commit -m "message"
+
+# ✅ AGENT CAN DO:
+- Implement features
+- Update documentation  
+- Run tests and builds
+- Provide commit suggestions
+
+# ✅ USER WILL DO:
+git add .
+git commit -m "feat: implement Phase 5 advanced features"
+```
+
+**Benefits**:
+- **Quality Control**: User reviews all changes before committing
+- **Meaningful History**: Commits represent actual development milestones
+- **User Agency**: Maintains user control over project versioning

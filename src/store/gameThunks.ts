@@ -14,6 +14,7 @@ import {
     playerHit,
     playerStand,
     playerDouble,
+    playerSplit,
     playerSurrender,
     logAction,
 } from './gameSlice';
@@ -28,11 +29,13 @@ import {
     getValidActions,
     shouldDealerHit,
     determineHandOutcome,
-    determineGameResult
+    determineGameResult,
+    getNextActiveHandIndex
 } from '../utils/gameLogic';
 import { getOptimalAction, evaluateDecision } from '../utils/strategyEngine';
-import { recordDecision, recordGameResult, updateSkillLevel } from './sessionSlice';
-import { ActionType } from '../types/game';
+import { recordDecision, recordGameResult, updateSkillLevel, addHistoryEntry } from './sessionSlice';
+import { ActionType, PlayerHand, HandOutcome } from '../types/game';
+import { GameHistoryEntry, HandHistoryEntry } from '../types/session';
 
 // Start a new game: shuffle, deal, update state
 export const startNewHand = () => (dispatch: AppDispatch, getState: () => RootState) => {
@@ -200,7 +203,42 @@ export const playerAction = (action: ActionType) => (dispatch: AppDispatch, getS
             break;
         }
         case 'SPLIT': {
-            // Not implemented in Phase 2 (placeholder)
+            // Deal two new cards for the split
+            const { cards: newCards, remainingDeck: newDeck } = dealCards(deck, 2);
+            deck = newDeck;
+
+            dispatch(setDeck(deck));
+            dispatch(playerSplit({ handIndex, newCards }));
+
+            // Update hand values for both hands
+            const state = getState();
+            const updatedHands = state.game.playerHands;
+            const handUpdates = updatedHands.map((hand: PlayerHand, index: number) => {
+                const handValue = calculateHandValue(hand.cards);
+                return {
+                    index,
+                    value: handValue.value,
+                    isSoft: handValue.isSoft,
+                    isBlackjack: isBlackjack(hand.cards),
+                    busted: isBusted(hand.cards)
+                };
+            });
+
+            dispatch(updateHandValues({
+                playerHands: handUpdates,
+                dealerValue: state.game.dealerHand.handValue,
+                dealerIsSoft: state.game.dealerHand.isSoft,
+            }));
+
+            // Stay on current hand (the original hand) and update available actions
+            const updatedCurrentHand = updatedHands[handIndex];
+            const validActions = getValidActions(
+                updatedCurrentHand,
+                dealerUpCard,
+                updatedHands.length,
+                state.game.canSurrender
+            );
+            dispatch(setAvailableActions(validActions));
             break;
         }
         case 'SURRENDER': {
@@ -217,7 +255,7 @@ export const checkForNextPhase = () => (dispatch: AppDispatch, getState: () => R
     const { playerHands, currentHandIndex } = state.game;
 
     // Check if all hands are done (busted, stood, doubled, or surrendered)
-    const allHandsDone = playerHands.every(hand =>
+    const allHandsDone = playerHands.every((hand: PlayerHand) =>
         hand.busted || hand.stood || hand.doubled || hand.surrendered
     );
 
@@ -225,17 +263,24 @@ export const checkForNextPhase = () => (dispatch: AppDispatch, getState: () => R
         // All player hands are complete, start dealer turn
         dispatch(dealerTurn());
     } else {
-        // Find next active hand (not implemented for multi-hand yet)
-        // For now, just update available actions for current hand
-        const currentHand = playerHands[currentHandIndex];
-        if (currentHand && !currentHand.busted && !currentHand.stood && !currentHand.doubled && !currentHand.surrendered) {
+        // Find next active hand for multi-hand support
+        const nextHandIndex = getNextActiveHandIndex(playerHands, currentHandIndex);
+
+        if (nextHandIndex !== -1) {
+            // Move to next active hand
+            dispatch(setCurrentHandIndex(nextHandIndex));
+            const nextHand = playerHands[nextHandIndex];
+
             const availableActions = getValidActions(
-                currentHand,
+                nextHand,
                 state.game.dealerHand.cards[0],
                 playerHands.length,
-                true
+                state.game.canSurrender
             );
             dispatch(setAvailableActions(availableActions));
+        } else {
+            // No more active hands, shouldn't happen if allHandsDone check is correct
+            dispatch(dealerTurn());
         }
     }
 };
@@ -288,7 +333,7 @@ export const resolveHands = () => (dispatch: AppDispatch, getState: () => RootSt
     const { playerHands, dealerHand } = state.game;
 
     // Calculate outcomes for each player hand
-    const handOutcomes = playerHands.map(hand =>
+    const handOutcomes = playerHands.map((hand: PlayerHand) =>
         determineHandOutcome(hand, dealerHand)
     );
 
@@ -296,7 +341,7 @@ export const resolveHands = () => (dispatch: AppDispatch, getState: () => RootSt
     const gameResult = determineGameResult(playerHands, dealerHand);
 
     // Format hand outcomes for the action
-    const formattedOutcomes = handOutcomes.map((outcome, index) => ({
+    const formattedOutcomes = handOutcomes.map((outcome: HandOutcome, index: number) => ({
         handIndex: index,
         outcome
     }));
@@ -309,7 +354,7 @@ export const resolveHands = () => (dispatch: AppDispatch, getState: () => RootSt
     // Record game statistics
     let wins = 0, losses = 0, pushes = 0, surrenders = 0, blackjacks = 0, busts = 0;
 
-    handOutcomes.forEach((outcome) => {
+    handOutcomes.forEach((outcome: HandOutcome) => {
         switch (outcome) {
             case 'WIN':
                 wins++;
@@ -331,11 +376,74 @@ export const resolveHands = () => (dispatch: AppDispatch, getState: () => RootSt
     });
 
     // Count busts separately (included in losses)
-    playerHands.forEach((hand) => {
+    playerHands.forEach((hand: PlayerHand) => {
         if (hand.busted) {
             busts++;
         }
     });
+
+    // Create game history entry
+    const historyEntry: GameHistoryEntry = {
+        id: `game-${Date.now()}`,
+        timestamp: Date.now(),
+        sessionId: getState().session.currentSession.sessionId,
+
+        // Initial Deal (reconstruct from first two cards of first hand)
+        initialPlayerCards: playerHands[0].cards.slice(0, 2).map(card => `${card.rank}${card.suit}`),
+        initialDealerCard: `${dealerHand.cards[0].rank}${dealerHand.cards[0].suit}`,
+
+        // Hand Progression
+        playerHands: playerHands.map((hand: PlayerHand, index: number): HandHistoryEntry => ({
+            handId: hand.id,
+            handIndex: index,
+            finalCards: hand.cards.map(card => `${card.rank}${card.suit}`),
+            finalValue: hand.handValue,
+            wasSoft: hand.isSoft,
+            actions: hand.actionLog.map(action => ({
+                action: action.action,
+                optimalAction: action.optimalAction,
+                wasCorrect: action.wasCorrect,
+                cardReceived: action.cardReceived ? `${action.cardReceived.rank}${action.cardReceived.suit}` : null,
+                handValueBefore: action.handValueBefore,
+                handValueAfter: action.handValueAfter,
+                reasoning: action.reasoning,
+            })),
+            outcome: hand.outcome || 'UNKNOWN',
+            wasSplit: hand.splitFromPair,
+            wasDoubled: hand.doubled,
+            wasSurrendered: hand.surrendered,
+            wasBusted: hand.busted,
+            wasBlackjack: hand.isBlackjack,
+        })),
+        dealerFinalHand: dealerHand.cards.map(card => `${card.rank}${card.suit}`),
+        dealerFinalValue: dealerHand.handValue,
+
+        // Outcomes
+        finalResult: {
+            wins,
+            losses,
+            pushes,
+            surrenders,
+        },
+
+        // Strategy Analysis
+        totalDecisions: playerHands.reduce((total, hand) => total + hand.actionLog.length, 0),
+        correctDecisions: playerHands.reduce((total, hand) =>
+            total + hand.actionLog.filter(action => action.wasCorrect).length, 0),
+        handAccuracy: playerHands.length > 0
+            ? playerHands.reduce((total, hand) => total + hand.actionLog.filter(action => action.wasCorrect).length, 0) /
+            playerHands.reduce((total, hand) => total + hand.actionLog.length, 0)
+            : 0,
+
+        // Notable Events
+        hadBlackjack: playerHands.some(hand => hand.isBlackjack),
+        hadSplits: playerHands.some(hand => hand.splitFromPair),
+        hadDoubles: playerHands.some(hand => hand.doubled),
+        hadSurrender: playerHands.some(hand => hand.surrendered),
+    };
+
+    // Add to game history
+    dispatch(addHistoryEntry(historyEntry));
 
     dispatch(recordGameResult({
         wins,

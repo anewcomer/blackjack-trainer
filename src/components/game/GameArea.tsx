@@ -13,7 +13,7 @@ const GameArea: React.FC = () => {
     dispatch(startNewHand());
   };
 
-  const handlePlayerAction = (action: 'HIT' | 'STAND' | 'DOUBLE' | 'SURRENDER') => {
+  const handlePlayerAction = (action: 'HIT' | 'STAND' | 'DOUBLE' | 'SPLIT' | 'SURRENDER') => {
     dispatch(playerAction(action));
   };
 
@@ -72,41 +72,86 @@ const GameArea: React.FC = () => {
 
         <Divider sx={{ borderColor: 'rgba(255,255,255,0.3)' }} />
 
-        {/* Player Area */}
-        <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white' }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Player {gameState.playerHands.length > 1 ? `(Hand ${gameState.currentHandIndex + 1})` : ''}
-            </Typography>
-            {currentPlayerHand ? (
-              <>
-                <Typography variant="body1">
-                  Cards: {currentPlayerHand.cards.map(card => `${card.rank}${card.suit}`).join(', ')}
+        {/* Player Area - Multiple Hands Support */}
+        <Stack spacing={2}>
+          {gameState.playerHands.map((hand, handIndex) => (
+            <Card
+              key={hand.id}
+              sx={{
+                backgroundColor: handIndex === gameState.currentHandIndex
+                  ? 'rgba(255,255,255,0.2)'
+                  : 'rgba(255,255,255,0.1)',
+                color: 'white',
+                border: handIndex === gameState.currentHandIndex
+                  ? '2px solid #90caf9'
+                  : 'none'
+              }}
+            >
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Hand {handIndex + 1} {handIndex === gameState.currentHandIndex ? '(Active)' : ''}
+                  {hand.splitFromPair && ' (Split)'}
                 </Typography>
                 <Typography variant="body1">
-                  Value: {formatHandValue(currentPlayerHand.cards)}
+                  Cards: {hand.cards.map(card => `${card.rank}${card.suit}`).join(', ')}
                 </Typography>
-                {currentPlayerHand.busted && (
+                <Typography variant="body1">
+                  Value: {formatHandValue(hand.cards)}
+                </Typography>
+                {hand.busted && (
                   <Typography variant="body1" color="error">
                     BUST!
                   </Typography>
                 )}
-                {currentPlayerHand.isBlackjack && (
+                {hand.isBlackjack && (
                   <Typography variant="body1" color="success.main">
                     BLACKJACK!
                   </Typography>
                 )}
-              </>
-            ) : (
-              <Typography variant="body2" sx={{ opacity: 0.7 }}>
-                No cards dealt
-              </Typography>
-            )}
-          </CardContent>
-        </Card>
+                {hand.stood && (
+                  <Typography variant="body2" sx={{ opacity: 0.7 }}>
+                    Stood
+                  </Typography>
+                )}
+                {hand.doubled && (
+                  <Typography variant="body2" sx={{ opacity: 0.7 }}>
+                    Doubled
+                  </Typography>
+                )}
+                {hand.surrendered && (
+                  <Typography variant="body2" color="warning.main">
+                    Surrendered
+                  </Typography>
+                )}
+                {hand.outcome && gameState.gamePhase === 'GAME_OVER' && (
+                  <Typography
+                    variant="body1"
+                    color={
+                      hand.outcome === 'WIN' ? 'success.main' :
+                        hand.outcome === 'LOSS' ? 'error.main' :
+                          hand.outcome === 'PUSH' ? 'warning.main' : 'info.main'
+                    }
+                  >
+                    {hand.outcome}
+                  </Typography>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+
+          {gameState.playerHands.length === 0 && (
+            <Card sx={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white' }}>
+              <CardContent>
+                <Typography variant="body2" sx={{ opacity: 0.7 }}>
+                  No hands dealt
+                </Typography>
+              </CardContent>
+            </Card>
+          )}
+        </Stack>
 
         {/* Action Buttons */}
-        <Stack spacing={2} direction="row" justifyContent="center">
+        <Stack spacing={2} direction="row" justifyContent="center" flexWrap="wrap">
           <Button
             variant="contained"
             color="error"
@@ -133,6 +178,15 @@ const GameArea: React.FC = () => {
             disabled={!canPlay || currentPlayerHand?.cards.length !== 2}
           >
             Double
+          </Button>
+          <Button
+            variant="contained"
+            color="secondary"
+            size="large"
+            onClick={() => handlePlayerAction('SPLIT')}
+            disabled={!canPlay || !gameState.availableActions.includes('SPLIT')}
+          >
+            Split
           </Button>
           <Button
             variant="contained"
