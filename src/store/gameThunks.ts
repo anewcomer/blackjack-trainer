@@ -31,6 +31,7 @@ import {
     determineGameResult
 } from '../utils/gameLogic';
 import { getOptimalAction, evaluateDecision } from '../utils/strategyEngine';
+import { recordDecision, recordGameResult, updateSkillLevel } from './sessionSlice';
 import { ActionType } from '../types/game';
 
 // Start a new game: shuffle, deal, update state
@@ -106,6 +107,20 @@ export const playerAction = (action: ActionType) => (dispatch: AppDispatch, getS
         handValueAfter: hand.handValue, // Will be updated after action
         cardDealt: null, // Will be updated if card is dealt
         timestamp: Date.now(),
+    }));
+
+    // Record decision for session analytics
+    dispatch(recordDecision({
+        wasCorrect: strategyDecision.isCorrect,
+        playerAction: action,
+        optimalAction,
+        scenario: {
+            playerValue: hand.handValue,
+            dealerUpcard: dealerUpCard.rank === 'A' ? 1 :
+                ['J', 'Q', 'K'].includes(dealerUpCard.rank) ? 10 :
+                    parseInt(dealerUpCard.rank),
+            tableType: strategyDecision.handType
+        }
     }));
 
     switch (action) {
@@ -290,4 +305,47 @@ export const resolveHands = () => (dispatch: AppDispatch, getState: () => RootSt
     dispatch(setGameResult(gameResult));
     dispatch(setGamePhase('GAME_OVER'));
     dispatch(setAvailableActions([]));
+
+    // Record game statistics
+    let wins = 0, losses = 0, pushes = 0, surrenders = 0, blackjacks = 0, busts = 0;
+
+    handOutcomes.forEach((outcome) => {
+        switch (outcome) {
+            case 'WIN':
+                wins++;
+                break;
+            case 'LOSS':
+                losses++;
+                break;
+            case 'PUSH':
+                pushes++;
+                break;
+            case 'SURRENDER':
+                surrenders++;
+                break;
+            case 'BLACKJACK':
+                blackjacks++;
+                wins++; // Blackjack is also a win
+                break;
+        }
+    });
+
+    // Count busts separately (included in losses)
+    playerHands.forEach((hand) => {
+        if (hand.busted) {
+            busts++;
+        }
+    });
+
+    dispatch(recordGameResult({
+        wins,
+        losses,
+        pushes,
+        surrenders,
+        blackjacks,
+        busts,
+    }));
+
+    // Update skill level based on recent performance
+    dispatch(updateSkillLevel());
 };

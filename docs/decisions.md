@@ -215,3 +215,33 @@ Prefer VSCode tasks over terminal commands for:
 
 ### Lessons Learned Integration
 See `docs/issues.md` for detailed lessons learned and recurring problem prevention strategies established during development.
+
+## Phase 4 → Phase 5 Transition (June 21, 2025)
+
+### Key Technical Insights for Phase 5
+
+#### Multi-Hand Architecture Requirements
+- **Current State**: Single-hand architecture in Redux gameSlice
+- **Phase 5 Need**: Support for split hands (up to 4 hands per game)
+- **Implementation Strategy**: Extend existing playerHands array, update currentHandIndex logic
+
+#### Critical Code Locations for Phase 5
+1. **gameThunks.ts**: SPLIT case is placeholder - needs full implementation
+2. **gameSlice.ts**: Need playerSplit action and multi-hand state management
+3. **gameLogic.ts**: Has createSplitHand() but needs integration
+4. **GameArea.tsx**: UI must display multiple hands simultaneously
+
+#### MUI v7 Layout Patterns Established
+- ✅ **Working Pattern**: Stack/Box instead of Grid
+- ✅ **Responsive Strategy**: direction={{ xs: 'column', md: 'row' }}
+- ✅ **Component Structure**: Modular session components in src/components/session/
+
+#### Session Analytics Integration Points
+- **gameThunks.resolveHands()**: Already handles multi-hand outcomes
+- **sessionSlice**: Ready for complex hand scenarios
+- **UI Components**: Built to handle dynamic data updates
+
+#### Performance Considerations Discovered
+- **Real-time Updates**: Redux selectors work well for live UI updates
+- **Component Rendering**: Session analytics components are optimized
+- **Memory Management**: Need to consider multi-hand state cleanup

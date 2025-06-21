@@ -9,19 +9,17 @@ import {
   IconButton,
   Stack,
 } from '@mui/material';
-import { 
-  Menu as MenuIcon,
+import {
   School as SchoolIcon,
   Casino as CasinoIcon,
 } from '@mui/icons-material';
 import { useAppSelector } from '../../store/hooks';
 import { GameArea } from '../game';
 import { StrategyGuide } from '../strategy';
+import { SessionStats, MistakePatterns, SessionControls } from '../session';
 
 const GameLayout: React.FC = () => {
-  // Note: Using any type temporarily until Redux state is properly typed
   const gamePhase = useAppSelector((state: any) => state.game.gamePhase);
-  const showStrategyGuide = useAppSelector((state: any) => state.ui.showStrategyGuide);
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -43,19 +41,24 @@ const GameLayout: React.FC = () => {
         </Toolbar>
       </AppBar>
 
+      {/* Session Controls */}
+      <Box sx={{ mb: 2 }}>
+        <SessionControls />
+      </Box>
+
       {/* Main Content Area */}
       <Box sx={{ mt: 2 }}>
-        <Stack 
-          direction={{ xs: 'column', lg: 'row' }} 
+        <Stack
+          direction={{ xs: 'column', xl: 'row' }}
           spacing={3}
           sx={{ width: '100%' }}
         >
           {/* Game Area - Left Side */}
-          <Box sx={{ flex: { xs: 1, lg: 2 } }}>
-            <Paper 
-              elevation={3} 
-              sx={{ 
-                p: 3, 
+          <Box sx={{ flex: { xs: 1, xl: 2 } }}>
+            <Paper
+              elevation={3}
+              sx={{
+                p: 3,
                 minHeight: '600px',
                 background: theme => theme.palette.blackjack.table,
                 color: 'white',
@@ -65,11 +68,19 @@ const GameLayout: React.FC = () => {
             </Paper>
           </Box>
 
-          {/* Strategy Guide - Right Side */}
+          {/* Strategy Guide - Center */}
           <Box sx={{ flex: 1 }}>
             <Paper elevation={2} sx={{ p: 2, minHeight: '600px' }}>
               <StrategyGuide />
             </Paper>
+          </Box>
+
+          {/* Session Analytics - Right Side */}
+          <Box sx={{ flex: 1, minWidth: { xl: '350px' } }}>
+            <Stack spacing={3}>
+              <SessionStats />
+              <MistakePatterns />
+            </Stack>
           </Box>
         </Stack>
       </Box>
@@ -78,7 +89,7 @@ const GameLayout: React.FC = () => {
       <Box sx={{ mt: 3 }}>
         <Paper elevation={1} sx={{ p: 2 }}>
           <Typography variant="body2" color="text.secondary" align="center">
-            Game Phase: {gamePhase || 'INITIAL'} | 
+            Game Phase: {gamePhase || 'INITIAL'} |
             Use the strategy guide on the right to make optimal decisions
           </Typography>
         </Paper>
