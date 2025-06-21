@@ -45,26 +45,31 @@ For commonly needed development activities, create VSCode tasks that can be exec
 - Implement proper selectors to prevent unnecessary re-renders
 - Test state transitions thoroughly, especially for multi-hand scenarios
 
-### Development Approach
-- **Start with Redux store and types** before any UI components
-- Build components incrementally, testing state integration at each step
-- Focus on the game logic core before visual polish
-- Implement strategy evaluation engine early to validate against requirements
-- **Create VSCode tasks** for common development activities (build, test, lint, deploy)
+### Redux Architecture Requirements
+- **Redux Toolkit is mandatory** - Previous hook-based implementations had rendering/timing issues
+- Design store slices before building components (see implementation-plan.md for details)
+- Use TypeScript throughout for type safety
+- Implement proper selectors to prevent unnecessary re-renders
+- Test state transitions thoroughly, especially for multi-hand scenarios
 
-### Quality Assurance
-- Test multi-hand splitting scenarios extensively (known complexity area)
-- Validate strategy table highlighting works correctly across all scenarios
-- Ensure action button states update reliably in all game conditions
-- Test responsive layout across device sizes
+### Component Architecture Requirements
+**CRITICAL INSTRUCTION**: Prefer small, decomposed files and classes that follow the single responsibility principle.
+
+**This is a STRONG, EMPHASIZED requirement for all future development:**
+- **One Purpose Per File**: Each file should have a single, clear responsibility
+- **Small, Focused Modules**: Break large files into smaller, composable units
+- **Clear Separation of Concerns**: Logic, presentation, data, and utilities should be separate
+- **Easy to Test**: Small modules are easier to unit test and debug
+- **Better Maintainability**: Changes to one feature don't affect unrelated code
+
+*See implementation-plan.md for detailed examples and architectural patterns.*
 
 ## Documentation During Development
 
 As we plan and build, maintain these files:
-- `decisions.md` - Document architectural choices and rationale
-- `issues.md` - Track bugs, especially state synchronization issues
-- `features.md` - Log implemented features and any deviations from specs
 - `progress.md` - **Regular progress snapshots for context continuity across chat sessions**
+
+**Note**: All architectural decisions, implementation details, and technical patterns are documented in `implementation-plan.md`.
 
 ### Progress Tracking for Context Management
 
@@ -93,6 +98,39 @@ As we plan and build, maintain these files:
 
 This enables seamless continuation of work in fresh chat sessions by providing Copilot with comprehensive context about the current state of implementation.
 
+## Development Workflow Rules
+
+### Git Operations Restriction
+**IMPORTANT**: Only the user is allowed to perform `git add` and `git commit` operations.
+
+**Rationale**:
+- **User Control**: Maintain full control over commit timing and messages
+- **Meaningful Commits**: Ensure commits represent logical development milestones
+- **Quality Assurance**: User can review changes before committing
+- **Workflow Integrity**: Prevent automated commits that may not align with development goals
+
+**Implementation**:
+- **Agent Responsibility**: Focus on code implementation and documentation
+- **User Responsibility**: Handle all git staging and commit operations
+- **Handoff Process**: Agent completes features and notifies user when ready for commit
+- **No Automated Git**: Agent will not use terminal commands for git operations
+
+### Documentation Review Protocol
+**Before starting each new development phase, review the `docs/` folder** to ensure:
+- **Context Awareness**: Understanding of current project state and requirements
+- **Prevent Duplication**: Avoid creating redundant documentation files
+- **Maintain Consistency**: Keep documentation organized and up-to-date
+- **Informed Development**: Base implementation decisions on documented requirements and progress
+
+**Current Documentation Files**:
+- `instructions.md` - This high-level development guide and workflow standards
+- `implementation-plan.md` - Detailed technical implementation roadmap and patterns
+- `progress.md` - Current development status and completed phases
+- `lessons-learned.md` - Universal lessons from AI-assisted development (applicable to any project)
+- `functional-specifications.md` - Core feature requirements
+- `user-experience-specifications.md` - UI/UX requirements
+- `minimal-requirements.md` - Essential MVP features
+
 ## Success Criteria
 
 The application is complete when:
@@ -103,70 +141,5 @@ The application is complete when:
 - Accessibility requirements are met
 - No rendering or timing issues observed during testing
 
-## Browser Testing and Debugging Tools
-
-For enhanced development and debugging capabilities, integrate Playwright MCP for browser automation:
-
-### Playwright MCP Integration (Use Sparingly)
-- **Purpose**: End-to-end testing for complex scenarios that cannot be tested with faster methods
-- **Browser Support**: Chrome only (sufficient for development and validation)
-- **Installation**: Install Playwright MCP server for VS Code integration
-- **Performance Note**: Use sparingly - prefer faster testing strategies (unit tests, React Testing Library) for routine validation
-
-### Primary Testing Strategy (Preferred)
-- **Unit Tests**: Jest + React Testing Library for component logic and Redux state
-- **Integration Tests**: Testing Library for component interactions and state updates
-- **Fast Feedback**: Use these methods for 90% of testing needs
-
-### Playwright MCP - Limited Use Cases Only
-Use Playwright MCP only for scenarios that cannot be tested with faster methods:
-- **Complex Multi-Hand Splits**: Full browser testing of 3-4 simultaneous hands
-- **Strategy Table Visual Validation**: Screenshot-based verification of highlighting accuracy
-- **Performance Bottlenecks**: When Redux state issues require browser-level debugging
-- **Final Deployment Validation**: Testing GitHub Pages build in actual Chrome browser
-- **Responsive Layout Edge Cases**: When CSS-in-JS behavior differs from test environment
-
-### Testing Priorities (Fast to Slow)
-1. **Unit Tests**: Redux slices, game logic, utility functions
-2. **Component Tests**: React Testing Library for UI component behavior
-3. **Integration Tests**: Component + Redux interactions
-4. **Playwright E2E**: Only for scenarios requiring full browser context
-
-### Development Workflow Automation
-**Prefer VSCode Tasks for Common Activities**:
-- **Build Task**: `npm run build` for production builds
-- **Test Task**: `npm test` for running unit tests
-- **Lint Task**: `npm run lint` for code quality checks
-- **Deploy Task**: `npm run deploy` for GitHub Pages deployment
-- **Dev Server Task**: `npm start` for development server
-- **Type Check Task**: TypeScript compilation validation
-
-**Benefits of VSCode Tasks**:
-- Execute without user approval/intervention
-- Consistent development workflow across team members
-- Integration with VS Code's built-in task runner
-- Can be configured for automatic execution on file changes
-
-**Terminal Commands**: Use for debugging, one-off operations, or when user interaction required
-
-### Playwright Usage Guidelines
-- **Minimize Usage**: Reserve for cases where faster testing is insufficient
-- **Chrome Only**: No cross-browser testing needed during development
-- **Specific Scenarios**: Focus on multi-hand complexity and visual validation
-- **Performance Focus**: Use to debug timing/rendering issues from previous implementation
-
-### Usage During Development
-- Run Playwright tests after major component implementations
-- Use for debugging Redux state synchronization issues
-- Validate responsive design works correctly on actual browser viewports
-- Test complex multi-hand scenarios that previously caused timing issues
-
-## Common Pitfalls to Avoid
-
-Based on previous implementation challenges:
-- Don't use React hooks alone for complex state - use Redux as specified
-- Avoid tightly coupled components - maintain clear data flow through Redux
-- Don't skip TypeScript types - they prevent many state-related bugs
-- Ensure proper cleanup of game state between hands
-- Test edge cases like simultaneous splits and doubles thoroughly
+*See implementation-plan.md for detailed testing strategy and workflow automation.*
 

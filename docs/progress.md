@@ -198,3 +198,127 @@
 - **Redux Testing**: ✅ All slices fully tested and verified
 - **Code Quality**: ✅ Zero errors across all TypeScript and ESLint checks
 - **Next Priority**: Component integration testing and deployment preparation
+
+## Development Issues Encountered (Project-Specific)
+
+### TypeScript Import/Export Issues
+**Problem**: Multiple TypeScript compilation errors due to incorrect imports and missing type definitions.
+
+**Project-Specific Context**: Redux slice creation and action creator exports required careful dependency management.
+
+**Solution Applied**: Used VSCode tasks `Quick Verification` and `Verify Code Quality` for systematic import cleanup.
+
+### Redux Thunk Type Safety
+**Problem**: Complex async thunks with proper TypeScript typing were challenging to implement correctly.
+
+**Project-Specific Context**: Game flow thunks required coordination between multiple slices (game, session, ui) with proper type safety.
+
+**Applied Solution**:
+```typescript
+export const gameThunk = () => (dispatch: AppDispatch, getState: () => RootState) => {
+  // Game-specific thunk implementation with proper typing
+};
+```
+
+### VSCode Task Integration
+**Problem**: Initial attempts to use VS Code tasks for development workflow failed.
+
+**Project-Specific Context**: Blackjack trainer development required frequent build verification due to complex Redux state management.
+
+**Applied Solution**: Created discrete tasks for build, lint, type-check operations with dependency chaining.
+
+### MUI v7 API Changes
+**Problem**: MUI Grid layout caused compilation issues, requiring migration to Stack/Box components.
+
+**Project-Specific Context**: Game layout required responsive design for card display and strategy tables.
+
+**Applied Solution**:
+```tsx
+// Applied for blackjack game layout
+<Stack spacing={2} direction="row">
+  <Box>Game Area</Box>
+  <Box>Strategy Guide</Box>
+</Stack>
+```
+
+### Game State Management Complexity
+**Problem**: Managing complex game state transitions with multiple hands, dealer automation, and action validation.
+
+**Project-Specific Context**: Blackjack requires handling multiple player hands, split scenarios, and dealer automation with proper state synchronization.
+
+**Applied Solution**:
+1. Separated game logic into focused slices (game, session, ui)
+2. Created utility functions for blackjack-specific calculations
+3. Used thunks for coordinating multi-step game operations
+4. Implemented action logging for blackjack strategy analysis
+
+### Development Server Management
+**Problem**: Long-running development server processes don't complete naturally and can interfere with task workflows.
+
+**Project-Specific Context**: Blackjack trainer testing required frequent build verification rather than live server monitoring.
+
+**Applied Solution**:
+- Manual testing: `npm start` for interactive gameplay testing
+- Automated verification: `npm run build && npm run lint && npm run type-check` for code quality
+- Used VSCode tasks for repeatable blackjack-specific verification workflows
+
+## Project-Specific Best Practices Applied
+
+### Blackjack-Specific Redux Architecture
+- Used typed hooks (`useAppDispatch`, `useAppSelector`) for game state management
+- Kept reducers pure; used thunks for blackjack game flow side effects
+- Structured slices by game domain (game, session, ui) for blackjack trainer features
+- Used action creators consistently for blackjack game actions
+
+### Blackjack Game TypeScript Integration
+- Defined interfaces for blackjack game entities (Card, Hand, GameState) before implementation
+- Used strict type checking for blackjack rules and strategy evaluation
+- Imported card and game types explicitly when needed
+- Avoided type assertions; fixed root type issues in game logic
+
+### Blackjack Trainer Development Workflow
+- Used VSCode tasks over manual terminal commands for blackjack-specific verification
+- Applied verification tasks before committing blackjack game features
+- Tested UI components with actual Redux integration for game state
+- Updated documentation as blackjack features were implemented
+
+### Blackjack Game Component Architecture
+- Separated game layout, strategy logic, and session analytics components
+- Used Material-UI v7 patterns for blackjack game interface
+- Implemented responsive design for card display and strategy tables
+- Kept components focused on single responsibilities (card display, action buttons, strategy tables)
+
+### Blackjack Testing Success ✅
+**Achievement**: Successfully completed comprehensive Redux testing with 89 tests passing across 7 test suites for blackjack trainer functionality.
+
+**Blackjack-Specific Solutions Applied**:
+- Fixed Redux slice test structure to match blackjack game state interfaces (UIState properties)
+- Resolved FeedbackMessage type mismatches by aligning tests with blackjack strategy feedback interfaces
+- Fixed cardUtils test suite with proper suit symbols (♠♥♦♣) and Ace calculation logic for blackjack rules
+- Resolved App component test multiple element issues using getAllByText for blackjack game elements
+
+**Blackjack Project Results**:
+- All Redux slice tests (game, session, ui) passing with proper TypeScript integration for blackjack state
+- Complete utility function test coverage (cardUtils) for blackjack game logic
+- Integration tests verifying Redux store architecture for blackjack trainer
+- Zero TypeScript or ESLint errors across the blackjack trainer codebase
+
+## Blackjack Project Problem Prevention
+
+### Before Starting New Blackjack Features
+1. **Plan Blackjack State**: Design interfaces for game entities (cards, hands, outcomes) and slice structure first
+2. **Create Game Utilities**: Build blackjack logic utilities (card calculation, hand evaluation) before UI integration
+3. **Set Up Game Verification**: Ensure build/lint tasks work for blackjack-specific components before adding complexity
+4. **Test Game Incrementally**: Implement and test small blackjack features (single hand, then splits, etc.) rather than complete game flows
+
+### When Encountering Blackjack Game Errors
+1. **Check Game Compilation**: Use `Quick Verification` task first for blackjack component issues
+2. **Isolate Game Issues**: Fix one type of error at a time (imports → types → game logic)
+3. **Clean Game Code**: Remove unused imports and variables in blackjack components as you go
+4. **Document Game Solutions**: Add patterns that work for blackjack development to project documentation
+
+### Blackjack Code Quality Maintenance
+1. **Regular Game Verification**: Run lint and type-check frequently during blackjack feature development
+2. **Game Import Hygiene**: Clean up imports immediately when removing blackjack functionality
+3. **Game Type Safety**: Never use `any` types for game entities; define proper Card, Hand, GameState interfaces
+4. **Blackjack Error Handling**: Check for and handle edge cases in blackjack game logic (splits, blackjacks, busts)

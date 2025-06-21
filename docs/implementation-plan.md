@@ -1,16 +1,25 @@
 # Blackjack Trainer - Implementation Plan
 
 ## Overview
-This document outlines the complete implementation strategy for the Blackjack Trainer application, focusing on Redux-first architecture to avoid the timing and rendering issues encountered in previous hook-based implementations.
+This document contains the complete technical implementation strategy for the Blackjack Trainer application, focusing on Redux-first architecture to avoid the timing and rendering issues encountered in previous hook-based implementations.
+
+**Note**: This document contains all detailed implementation patterns, architectural decisions, and technical standards. See `instructions.md` for high-level guidance and workflow rules.
 
 ## Documentation Organization
 All project documentation is centralized in the `docs/` folder for better organization:
 - **Requirements & Specifications**: Core project requirements and design specifications
-- **Implementation Guides**: Technical implementation roadmap and development instructions
+- **Implementation Guides**: Technical implementation roadmap and detailed patterns (this document)
+- **Workflow & Standards**: High-level development guidance and workflow rules
 - **Progress Tracking**: Development progress and context management for chat sessions
-- **Development Logs**: Decisions, issues, and feature implementation tracking (created during development)
 
-## Project Structure
+**Current Documentation Structure**:
+- `instructions.md` - High-level development guidance and workflow standards
+- `implementation-plan.md` - **This document** - Complete technical implementation details
+- `progress.md` - Development progress tracking with project-specific lessons learned
+- `lessons-learned.md` - Universal lessons from AI-assisted development (applicable to any project)
+- `functional-specifications.md` - Core functionality requirements
+- `user-experience-specifications.md` - UX/UI requirements
+- `minimal-requirements.md` - Essential MVP features
 
 ### Directory Organization
 ```
@@ -19,12 +28,10 @@ blackjack-trainer/
 │   ├── functional-specifications.md    # Core functionality requirements
 │   ├── user-experience-specifications.md # UX/UI requirements
 │   ├── minimal-requirements.md          # Essential MVP features
-│   ├── instructions.md                  # Development approach
+│   ├── instructions.md                  # High-level development guidance
 │   ├── implementation-plan.md           # This technical roadmap
 │   ├── progress.md                      # Development progress tracking
-│   ├── decisions.md                     # Architectural decisions (to be created)
-│   ├── issues.md                        # Bug tracking (to be created)
-│   └── features.md                      # Feature implementation log (to be created)
+│   └── lessons-learned.md               # Universal AI-assisted development lessons
 ├── public/
 │   ├── index.html
 │   ├── manifest.json
@@ -79,6 +86,32 @@ interface RootState {
   ui: UIState;
 }
 ```
+
+### Redux Architecture Details
+
+**Store Structure**:
+- **gameSlice**: Core game state (hands, deck, phase, actions)
+- **sessionSlice**: Statistics, history, learning analytics  
+- **uiSlice**: UI state, modals, theme preferences
+
+**Why Redux Toolkit Over Hooks**:
+Previous hook-based implementations had rendering/timing issues with complex state:
+- Multi-hand scenarios caused synchronization problems
+- Action button states didn't update reliably
+- Strategy evaluation required global state access
+
+**Redux Benefits**:
+- Predictable state updates with immutability
+- Time-travel debugging capabilities
+- Better testing isolation
+- Proper state separation and modularity
+
+**Async Actions (Thunks)**:
+Game flow requires coordinated async operations:
+- **startNewHand**: Deck creation, shuffling, initial dealing
+- **playerAction**: Action validation, card dealing, state updates
+- **dealerTurn**: Automated dealer play with timing delays
+- **resolveHands**: Outcome calculation and result setting
 
 ### 1. Game Slice (`gameSlice.ts`)
 **Purpose**: Manages all active game state and logic
@@ -396,7 +429,7 @@ interface SessionStatsProps {
 
 **Deliverables**:
 - Playable basic blackjack game
-- Functional player actions (hit, stand, basic functionality)
+- Functional player actions (hit, stand, double, basic functionality)
 - Redux-connected components
 - Working dealer automation
 
@@ -528,73 +561,66 @@ interface SessionStatsProps {
 
 ## Testing Strategy
 
-### 1. Unit Testing
-**Focus**: Core game logic and Redux state management
+### Testing Approach Overview
 
-#### Redux Slice Testing
-```typescript
-// Example test structure for gameSlice
-describe('gameSlice', () => {
-  test('should deal initial cards correctly', () => {
-    const state = gameSlice.reducer(initialState, dealNewHand());
-    expect(state.playerHands[0].cards).toHaveLength(2);
-    expect(state.dealerHand.cards).toHaveLength(2);
-  });
+**Primary Testing Strategy (Preferred)**:
+- **Unit Tests**: Jest + React Testing Library for component logic and Redux state
+- **Integration Tests**: Testing Library for component interactions and state updates
+- **Fast Feedback**: Use these methods for 90% of testing needs
 
-  test('should handle player hit action', () => {
-    const state = gameSlice.reducer(gameInProgress, playerAction('HIT'));
-    expect(state.playerHands[0].cards).toHaveLength(3);
-  });
-});
-```
+### Testing Priorities (Fast to Slow)
+1. **Unit Tests**: Redux slices, game logic, utility functions
+2. **Component Tests**: React Testing Library for UI component behavior
+3. **Integration Tests**: Component + Redux interactions
+4. **Playwright E2E**: Only for scenarios requiring full browser context
 
-#### Game Logic Testing
-```typescript
-// Example tests for core utilities
-describe('gameLogic', () => {
-  test('should calculate hand values correctly', () => {
-    expect(calculateHandValue([ace, king])).toBe(21);
-    expect(calculateHandValue([ace, ace, nine])).toBe(21);
-  });
+### Verified Testing Strategy (Proven Successful)
+Based on our completed Phase 7 testing (89 tests passing across 7 test suites):
 
-  test('should detect blackjack correctly', () => {
-    expect(isBlackjack([ace, king])).toBe(true);
-    expect(isBlackjack([ten, ace])).toBe(true);
-    expect(isBlackjack([seven, eight, six])).toBe(false);
-  });
-});
-```
+**Redux Testing Approach**:
+- Start with integration tests to verify store architecture
+- Individual slice tests with proper TypeScript types
+- Use `get_errors` tool consistently for TypeScript validation
+- Fix Redux slice test structure to match actual state interfaces
 
-### 2. Component Integration Testing
-**Focus**: Redux-connected components and user interactions
+**Key Success Patterns**:
+- UIState properties: Match test expectations with actual properties
+- Type alignment: Ensure tests align with actual interface structures
+- Progressive testing: Integration first, then detailed unit tests
+- Use VSCode tasks for efficient test running
 
-```typescript
-// Example component test
-describe('ActionButtons', () => {
-  test('should dispatch correct actions', () => {
-    const store = mockStore(testGameState);
-    render(<ActionButtons />, { wrapper: ReduxProvider(store) });
-    
-    fireEvent.click(screen.getByText('Hit'));
-    expect(store.getActions()).toContain(playerAction('HIT'));
-  });
-});
-```
+**Critical Test Areas** (validated):
+- Redux Store Integration: Verify all slices work together
+- Game slice: Complex thunk integration and state management
+- Session slice: Statistics and decision tracking
+- UI slice: Modal management and feedback systems
+- Utility functions: Card logic and game mechanics
 
-### 3. End-to-End Testing (Playwright MCP)
-**Limited Use**: Only for complex multi-hand scenarios that can't be unit tested
+### Playwright MCP Integration (Use Sparingly)
+- **Purpose**: End-to-end testing for complex scenarios that cannot be tested with faster methods
+- **Browser Support**: Chrome only (sufficient for development and validation)
+- **Installation**: Install Playwright MCP server for VS Code integration
+- **Performance Note**: Use sparingly - prefer faster testing strategies (unit tests, React Testing Library) for routine validation
 
-#### Specific E2E Test Cases:
-- **Multi-Hand Splitting**: Test 3-4 simultaneous hands with complex decision trees
-- **Strategy Table Highlighting**: Visual verification of correct cell highlighting
-- **Responsive Behavior**: Layout functionality across device sizes
-- **Accessibility Navigation**: Full keyboard navigation workflows
+### Playwright MCP - Limited Use Cases Only
+Use Playwright MCP only for scenarios that cannot be tested with faster methods:
+- **Complex Multi-Hand Splits**: Full browser testing of 3-4 simultaneous hands
+- **Strategy Table Visual Validation**: Screenshot-based verification of highlighting accuracy
+- **Performance Bottlenecks**: When Redux state issues require browser-level debugging
+- **Final Deployment Validation**: Testing GitHub Pages build in actual Chrome browser
+- **Responsive Layout Edge Cases**: When CSS-in-JS behavior differs from test environment
 
-### 4. Accessibility Testing
-- **Keyboard Navigation**: All functionality accessible via keyboard
-- **Screen Reader**: Complete game playable with screen reader
-- **Color Contrast**: WCAG AA compliance verification
-- **Focus Management**: Proper focus flow through game states
+### Playwright Usage Guidelines
+- **Minimize Usage**: Reserve for cases where faster testing is insufficient
+- **Chrome Only**: No cross-browser testing needed during development
+- **Specific Scenarios**: Focus on multi-hand complexity and visual validation
+- **Performance Focus**: Use to debug timing/rendering issues from previous implementation
+
+### Usage During Development
+- Run Playwright tests after major component implementations
+- Use for debugging Redux state synchronization issues
+- Validate responsive design works correctly on actual browser viewports
+- Test complex multi-hand scenarios that previously caused timing issues
 
 ## Build and Deployment Configuration
 
@@ -744,3 +770,51 @@ describe('ActionButtons', () => {
 5. **Start Core Game Logic**: Implement card utilities and basic game mechanics
 
 This implementation plan provides a comprehensive roadmap for building the Blackjack Trainer application with a Redux-first approach, emphasizing testing, accessibility, and maintainable code architecture.
+
+### Game Rules Implementation Standards
+
+**Blackjack Rules Configuration**:
+- **Dealer hits soft 17**: Configurable via GAME_CONFIG
+- **Double after split**: Allowed by default
+- **Surrender allowed**: First two cards only
+- **Max split hands**: 4 hands maximum
+
+**Hand Value Calculation Standards**:
+- **Ace handling**: Dynamic soft/hard calculation
+- **Bust detection**: Immediate when hand > 21
+- **Blackjack detection**: 21 with exactly 2 cards (excludes splits)
+
+**Strategy Engine Integration**:
+- **Basic Strategy Tables**: Static data in strategyCharts.ts
+- **Real-time Feedback**: Compare player actions to optimal strategy
+- **Action Logging**: Track decisions for learning analytics
+
+### Component Architecture Standards
+
+**CRITICAL INSTRUCTION**: Prefer small, decomposed files and classes that follow the single responsibility principle.
+
+**Implementation Requirements**:
+- **One Purpose Per File**: Each file should have a single, clear responsibility
+- **Small, Focused Modules**: Break large files into smaller, composable units
+- **Clear Separation of Concerns**: Logic, presentation, data, and utilities should be separate
+- **Easy to Test**: Small modules are easier to unit test and debug
+- **Better Maintainability**: Changes to one feature don't affect unrelated code
+
+**Examples of Good Decomposition**:
+```
+// ❌ BAD: Large, multi-purpose file
+strategyEngine.ts (500+ lines, multiple responsibilities)
+
+// ✅ GOOD: Decomposed into focused modules
+strategy/
+├── evaluators/
+│   ├── hardHandEvaluator.ts    (handles hard hand strategy)
+│   ├── softHandEvaluator.ts    (handles soft hand strategy)
+│   └── pairEvaluator.ts        (handles pair splitting strategy)
+├── converters/
+│   ├── actionConverter.ts      (ActionType ↔ StrategyAction)
+│   └── cardConverter.ts        (card value conversions)
+├── explanations/
+│   └── decisionExplainer.ts    (generates strategy explanations)
+└── index.ts                    (clean public API)
+```
