@@ -284,3 +284,34 @@ git commit -m "feat: implement Phase 5 advanced features"
 - **Quality Control**: User reviews all changes before committing
 - **Meaningful History**: Commits represent actual development milestones
 - **User Agency**: Maintains user control over project versioning
+
+### **📋 Documentation Review Protocol**
+**Decision**: Review the `docs/` folder before starting each new development phase.
+
+**Rationale**:
+- **Context Awareness**: Ensure understanding of current project state and requirements
+- **Prevent Duplication**: Avoid creating redundant documentation files
+- **Maintain Consistency**: Keep documentation organized and up-to-date
+- **Informed Development**: Base implementation decisions on documented requirements and progress
+
+**Implementation Process**:
+1. **Phase Transition**: Before starting any new phase, review all docs/ files
+2. **Requirements Check**: Verify functional and user experience specifications
+3. **Progress Validation**: Confirm current status in progress.md
+4. **Architecture Review**: Check decisions.md for established patterns
+5. **Planning Reference**: Use implementation-plan.md for phase objectives
+
+**Documentation Files to Review**:
+- `progress.md` - Current development status and completed phases
+- `implementation-plan.md` - Phase objectives and technical roadmap
+- `functional-specifications.md` - Core feature requirements
+- `user-experience-specifications.md` - UI/UX requirements
+- `decisions.md` - Architectural decisions and established patterns
+- `minimal-requirements.md` - Essential MVP features
+- `instructions.md` - Development approach and guidelines
+
+**Benefits**:
+- **Consistent Progress**: Ensures each phase builds properly on previous work
+- **Documentation Hygiene**: Prevents scattered progress files and duplicate docs
+- **Requirement Alignment**: Keeps implementation aligned with original specifications
+- **Context Preservation**: Maintains development context across chat sessions
