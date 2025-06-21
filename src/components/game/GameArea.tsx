@@ -56,25 +56,27 @@ const GameArea: React.FC = () => {
       </Typography>
 
       {/* New Hand Button */}
-      <Box sx={{ mb: 3, textAlign: 'center' }}>
-        <Button
-          variant="contained"
-          size="large"
-          onClick={handleNewHand}
-          sx={{ minWidth: 150 }}
-          aria-describedby="game-instructions"
-          autoFocus={gameState.gamePhase === 'INITIAL'}
-        >
-          Deal New Hand
-        </Button>
-        <Typography
-          id="game-instructions"
-          variant="body2"
-          sx={{ mt: 1, opacity: 0.8 }}
-        >
-          Press to start a new blackjack hand
-        </Typography>
-      </Box>
+      {gameState.gamePhase === 'INITIAL' && (
+        <Box sx={{ mb: 3, textAlign: 'center' }}>
+          <Button
+            variant="contained"
+            size="large"
+            onClick={handleNewHand}
+            sx={{ minWidth: 150 }}
+            aria-describedby="game-instructions"
+            autoFocus={gameState.gamePhase === 'INITIAL'}
+          >
+            Deal New Hand
+          </Button>
+          <Typography
+            id="game-instructions"
+            variant="body2"
+            sx={{ mt: 1, opacity: 0.8 }}
+          >
+            Press to start a new blackjack hand
+          </Typography>
+        </Box>
+      )}
 
       {/* Game State Display */}
       <Stack spacing={3} role="region" aria-labelledby="game-title">

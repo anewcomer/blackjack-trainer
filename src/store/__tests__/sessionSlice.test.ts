@@ -1,18 +1,83 @@
 import { configureStore } from '@reduxjs/toolkit';
-import sessionSlice, {
-    startSession,
+import sessionReducer, {
+    startNewSession,
+    endCurrentSession,
+    recordDecision,
     recordGameResult,
-    recordPlayerAction,
-    resetSession,
+    addHistoryEntry,
+    clearHistory,
+    setMaxHistoryEntries,
+    clearMistakePatterns,
+    removeMistakePattern,
     updateSkillLevel,
-    SessionState,
+    setTrackingEnabled,
+    resetAllData,
+    importSessionData,
+    sessionSlice,
 } from '../sessionSlice';
-import { GameResult, PlayerActionRecord } from '../../types/session';
+import { SessionState, SessionStatistics, GameHistoryEntry, MistakePattern } from '../../types/session';
+
+// Helper functions to create mock data
+const createMockSessionStats = (overrides?: Partial<SessionStatistics>): SessionStatistics => ({
+    sessionId: 'test-session-123',
+    sessionStart: 1640995200000, // Jan 1, 2022
+    sessionEnd: null,
+    handsPlayed: 0,
+    decisionsTotal: 0,
+    decisionsCorrect: 0,
+    accuracy: 0,
+    wins: 0,
+    losses: 0,
+    pushes: 0,
+    surrenders: 0,
+    blackjacks: 0,
+    busts: 0,
+    recentAccuracy: [],
+    improvementTrend: 0,
+    ...overrides,
+});
+
+const createMockGameHistoryEntry = (overrides?: Partial<GameHistoryEntry>): GameHistoryEntry => ({
+    id: 'game-123',
+    timestamp: Date.now(),
+    sessionId: 'session-123',
+    initialPlayerCards: ['A♠', 'K♥'],
+    initialDealerCard: '7♦',
+    playerHands: [],
+    dealerFinalHand: ['7♦', '10♣'],
+    dealerFinalValue: 17,
+    finalResult: {
+        wins: 1,
+        losses: 0,
+        pushes: 0,
+        surrenders: 0,
+    },
+    totalDecisions: 1,
+    correctDecisions: 1,
+    handAccuracy: 100,
+    hadBlackjack: true,
+    hadSplits: false,
+    hadDoubles: false,
+    hadSurrender: false,
+    ...overrides,
+});
+
+const createMockMistakePattern = (overrides?: Partial<MistakePattern>): MistakePattern => ({
+    scenario: '16-10-standard',
+    playerValue: 16,
+    dealerUpcard: 10,
+    tableType: 'standard',
+    playerAction: 'HIT',
+    correctAction: 'STAND',
+    frequency: 1,
+    lastOccurrence: Date.now(),
+    ...overrides,
+});
 
 const createTestStore = (initialState?: Partial<SessionState>) => {
     return configureStore({
         reducer: {
-            session: sessionSlice.reducer,
+            session: sessionReducer,
         },
         preloadedState: {
             session: {
@@ -24,394 +89,654 @@ const createTestStore = (initialState?: Partial<SessionState>) => {
 };
 
 describe('sessionSlice', () => {
+    let store: ReturnType<typeof createTestStore>;
+
+    beforeEach(() => {
+        store = createTestStore();
+    });
+
     describe('initial state', () => {
         it('should have correct initial state', () => {
-            const state = sessionSlice.getInitialState();
+            const state = store.getState().session;
 
-            expect(state.isActive).toBe(false);
-            expect(state.startTime).toBeNull();
-            expect(state.endTime).toBeNull();
-            expect(state.handsPlayed).toBe(0);
-            expect(state.correctDecisions).toBe(0);
-            expect(state.totalDecisions).toBe(0);
-            expect(state.wins).toBe(0);
-            expect(state.losses).toBe(0);
-            expect(state.pushes).toBe(0);
-            expect(state.skillLevel).toBe('BEGINNER');
+            expect(state).toHaveProperty('currentSession');
+            expect(state).toHaveProperty('gameHistory');
+            expect(state).toHaveProperty('allTimeStats');
+            expect(state).toHaveProperty('mistakePatterns');
+            expect(state).toHaveProperty('skillLevel');
+            expect(state).toHaveProperty('maxHistoryEntries');
+            expect(state).toHaveProperty('trackingEnabled');
+
+            expect(state.currentSession.handsPlayed).toBe(0);
+            expect(state.currentSession.decisionsTotal).toBe(0);
+            expect(state.currentSession.accuracy).toBe(0);
             expect(state.gameHistory).toEqual([]);
-            expect(state.actionHistory).toEqual([]);
             expect(state.mistakePatterns).toEqual([]);
+            expect(state.skillLevel).toBe('BEGINNER');
+            expect(state.maxHistoryEntries).toBe(100);
+            expect(state.trackingEnabled).toBe(true);
+        });
+
+        it('should create session with unique ID and timestamp', () => {
+            const state = store.getState().session;
+
+            expect(state.currentSession.sessionId).toMatch(/^session-\d+$/);
+            expect(state.currentSession.sessionStart).toBeLessThanOrEqual(Date.now());
+            expect(state.currentSession.sessionEnd).toBeNull();
         });
     });
 
     describe('session management', () => {
-        it('should start a session correctly', () => {
-            const store = createTestStore();
-            const startTime = Date.now();
+        it('should start a new session', () => {
+            const oldSessionId = store.getState().session.currentSession.sessionId;
 
-            store.dispatch(startSession());
+            store.dispatch(startNewSession());
+
             const state = store.getState().session;
-
-            expect(state.isActive).toBe(true);
-            expect(state.startTime).toBeGreaterThanOrEqual(startTime);
-            expect(state.endTime).toBeNull();
+            expect(state.currentSession.sessionId).not.toBe(oldSessionId);
+            expect(state.currentSession.sessionId).toMatch(/^session-\d+$/);
+            expect(state.currentSession.handsPlayed).toBe(0);
+            expect(state.currentSession.decisionsTotal).toBe(0);
+            expect(state.currentSession.decisionsCorrect).toBe(0);
+            expect(state.currentSession.accuracy).toBe(0);
         });
 
-        it('should reset session correctly', () => {
-            const store = createTestStore({
-                isActive: true,
-                handsPlayed: 10,
-                correctDecisions: 8,
-                totalDecisions: 15,
-                wins: 5,
-                losses: 4,
-                pushes: 1,
-                skillLevel: 'INTERMEDIATE',
-                gameHistory: [
-                    {
-                        handId: 'test-1',
-                        playerHands: [],
-                        dealerHand: [],
-                        outcomes: ['WIN'],
-                        timestamp: Date.now(),
-                        actionsLog: [],
-                    }
-                ],
-            });
-
-            store.dispatch(resetSession());
-            const state = store.getState().session;
-
-            expect(state.isActive).toBe(false);
-            expect(state.startTime).toBeNull();
-            expect(state.handsPlayed).toBe(0);
-            expect(state.correctDecisions).toBe(0);
-            expect(state.totalDecisions).toBe(0);
-            expect(state.wins).toBe(0);
-            expect(state.losses).toBe(0);
-            expect(state.pushes).toBe(0);
-            expect(state.skillLevel).toBe('BEGINNER');
-            expect(state.gameHistory).toEqual([]);
-            expect(state.actionHistory).toEqual([]);
-            expect(state.mistakePatterns).toEqual([]);
-        });
-    });
-
-    describe('game result recording', () => {
-        it('should record single hand win correctly', () => {
-            const store = createTestStore({ isActive: true });
-
-            const gameResult: GameResult = {
-                handId: 'test-hand-1',
-                playerHands: [
-                    {
-                        cards: [{ rank: 'K', suit: 'hearts', value: 10 }, { rank: '9', suit: 'spades', value: 9 }],
-                        busted: false,
-                        stood: true,
-                        doubled: false,
-                        splitFromPair: false,
-                        surrendered: false,
-                        isBlackjack: false,
-                        outcome: 'WIN',
-                        actionLog: [],
-                    }
-                ],
-                dealerHand: [
-                    { rank: '10', suit: 'clubs', value: 10 },
-                    { rank: '8', suit: 'diamonds', value: 8 }
-                ],
-                outcomes: ['WIN'],
-                timestamp: Date.now(),
-                actionsLog: [],
-            };
-
-            store.dispatch(recordGameResult(gameResult));
-            const state = store.getState().session;
-
-            expect(state.handsPlayed).toBe(1);
-            expect(state.wins).toBe(1);
-            expect(state.losses).toBe(0);
-            expect(state.pushes).toBe(0);
-            expect(state.gameHistory).toHaveLength(1);
-            expect(state.gameHistory[0]).toEqual(gameResult);
-        });
-
-        it('should record multi-hand results correctly', () => {
-            const store = createTestStore({ isActive: true });
-
-            const gameResult: GameResult = {
-                handId: 'test-split-hand',
-                playerHands: [
-                    {
-                        cards: [{ rank: '8', suit: 'hearts', value: 8 }, { rank: '10', suit: 'spades', value: 10 }],
-                        busted: false,
-                        stood: true,
-                        doubled: false,
-                        splitFromPair: true,
-                        surrendered: false,
-                        isBlackjack: false,
-                        outcome: 'WIN',
-                        actionLog: [],
-                    },
-                    {
-                        cards: [{ rank: '8', suit: 'clubs', value: 8 }, { rank: '5', suit: 'diamonds', value: 5 }, { rank: '9', suit: 'hearts', value: 9 }],
-                        busted: true,
-                        stood: false,
-                        doubled: false,
-                        splitFromPair: true,
-                        surrendered: false,
-                        isBlackjack: false,
-                        outcome: 'LOSS',
-                        actionLog: [],
-                    }
-                ],
-                dealerHand: [
-                    { rank: 'Q', suit: 'spades', value: 10 },
-                    { rank: '7', suit: 'clubs', value: 7 }
-                ],
-                outcomes: ['WIN', 'LOSS'],
-                timestamp: Date.now(),
-                actionsLog: [],
-            };
-
-            store.dispatch(recordGameResult(gameResult));
-            const state = store.getState().session;
-
-            expect(state.handsPlayed).toBe(1); // One game, even though split
-            expect(state.wins).toBe(1);
-            expect(state.losses).toBe(1);
-            expect(state.pushes).toBe(0);
-        });
-
-        it('should handle push results correctly', () => {
-            const store = createTestStore({ isActive: true });
-
-            const gameResult: GameResult = {
-                handId: 'test-push',
-                playerHands: [
-                    {
-                        cards: [{ rank: 'K', suit: 'hearts', value: 10 }, { rank: '10', suit: 'spades', value: 10 }],
-                        busted: false,
-                        stood: true,
-                        doubled: false,
-                        splitFromPair: false,
-                        surrendered: false,
-                        isBlackjack: false,
-                        outcome: 'PUSH',
-                        actionLog: [],
-                    }
-                ],
-                dealerHand: [
-                    { rank: 'J', suit: 'clubs', value: 10 },
-                    { rank: 'Q', suit: 'diamonds', value: 10 }
-                ],
-                outcomes: ['PUSH'],
-                timestamp: Date.now(),
-                actionsLog: [],
-            };
-
-            store.dispatch(recordGameResult(gameResult));
-            const state = store.getState().session;
-
-            expect(state.handsPlayed).toBe(1);
-            expect(state.wins).toBe(0);
-            expect(state.losses).toBe(0);
-            expect(state.pushes).toBe(1);
-        });
-    });
-
-    describe('action recording and accuracy tracking', () => {
-        it('should record correct player action', () => {
-            const store = createTestStore({ isActive: true });
-
-            const actionRecord: PlayerActionRecord = {
-                handContext: {
-                    playerCards: [{ rank: '10', suit: 'hearts', value: 10 }, { rank: '6', suit: 'spades', value: 6 }],
-                    dealerUpcard: { rank: '5', suit: 'clubs', value: 5 },
-                    handValue: 16,
-                    canDouble: false,
-                    canSplit: false,
-                    canSurrender: true,
-                },
-                playerAction: 'STAND',
-                optimalAction: 'STAND',
+        it('should end current session and update all-time stats', () => {
+            // Set up current session with some data
+            store.dispatch(recordDecision({
                 wasCorrect: true,
-                timestamp: Date.now(),
-            };
+                playerAction: 'HIT',
+                optimalAction: 'HIT',
+                scenario: { playerValue: 12, dealerUpcard: 6, tableType: 'standard' }
+            }));
+            store.dispatch(recordGameResult({
+                wins: 1,
+                losses: 0,
+                pushes: 0,
+                surrenders: 0,
+                blackjacks: 1,
+                busts: 0
+            }));
 
-            store.dispatch(recordPlayerAction(actionRecord));
+            const beforeEnd = store.getState().session;
+            const sessionHandsPlayed = beforeEnd.currentSession.handsPlayed;
+            const sessionDecisionsTotal = beforeEnd.currentSession.decisionsTotal;
+
+            store.dispatch(endCurrentSession());
+
             const state = store.getState().session;
 
-            expect(state.totalDecisions).toBe(1);
-            expect(state.correctDecisions).toBe(1);
-            expect(state.actionHistory).toHaveLength(1);
-            expect(state.actionHistory[0]).toEqual(actionRecord);
+            expect(state.currentSession.sessionEnd).toBeLessThanOrEqual(Date.now());
+            expect(state.allTimeStats.handsPlayed).toBe(sessionHandsPlayed);
+            expect(state.allTimeStats.decisionsTotal).toBe(sessionDecisionsTotal);
+            expect(state.allTimeStats.accuracy).toBeGreaterThan(0);
+        });
+    });
+
+    describe('decision tracking', () => {
+        it('should record correct decision', () => {
+            store.dispatch(recordDecision({
+                wasCorrect: true,
+                playerAction: 'HIT',
+                optimalAction: 'HIT',
+                scenario: { playerValue: 12, dealerUpcard: 6, tableType: 'standard' }
+            }));
+
+            const state = store.getState().session;
+
+            expect(state.currentSession.decisionsTotal).toBe(1);
+            expect(state.currentSession.decisionsCorrect).toBe(1);
+            expect(state.currentSession.accuracy).toBe(100);
             expect(state.mistakePatterns).toHaveLength(0);
         });
 
-        it('should record incorrect player action and create mistake pattern', () => {
-            const store = createTestStore({ isActive: true });
-
-            const actionRecord: PlayerActionRecord = {
-                handContext: {
-                    playerCards: [{ rank: '10', suit: 'hearts', value: 10 }, { rank: '6', suit: 'spades', value: 6 }],
-                    dealerUpcard: { rank: '5', suit: 'clubs', value: 5 },
-                    handValue: 16,
-                    canDouble: false,
-                    canSplit: false,
-                    canSurrender: false,
-                },
+        it('should record incorrect decision and create mistake pattern', () => {
+            store.dispatch(recordDecision({
+                wasCorrect: false,
                 playerAction: 'HIT',
                 optimalAction: 'STAND',
-                wasCorrect: false,
-                timestamp: Date.now(),
-            };
+                scenario: { playerValue: 16, dealerUpcard: 10, tableType: 'standard' }
+            }));
 
-            store.dispatch(recordPlayerAction(actionRecord));
             const state = store.getState().session;
 
-            expect(state.totalDecisions).toBe(1);
-            expect(state.correctDecisions).toBe(0);
-            expect(state.actionHistory).toHaveLength(1);
+            expect(state.currentSession.decisionsTotal).toBe(1);
+            expect(state.currentSession.decisionsCorrect).toBe(0);
+            expect(state.currentSession.accuracy).toBe(0);
             expect(state.mistakePatterns).toHaveLength(1);
 
             const mistake = state.mistakePatterns[0];
-            expect(mistake.scenario).toBe('16 vs 5');
+            expect(mistake.scenario).toBe('16-10-standard');
+            expect(mistake.playerValue).toBe(16);
+            expect(mistake.dealerUpcard).toBe(10);
+            expect(mistake.tableType).toBe('standard');
             expect(mistake.playerAction).toBe('HIT');
             expect(mistake.correctAction).toBe('STAND');
             expect(mistake.frequency).toBe(1);
         });
 
-        it('should increment existing mistake pattern frequency', () => {
-            const store = createTestStore({
-                isActive: true,
-                mistakePatterns: [
-                    {
-                        scenario: '16 vs 5',
-                        playerAction: 'HIT',
-                        correctAction: 'STAND',
-                        frequency: 1,
-                        lastOccurrence: Date.now() - 1000,
-                    }
-                ]
-            });
-
-            const actionRecord: PlayerActionRecord = {
-                handContext: {
-                    playerCards: [{ rank: '9', suit: 'hearts', value: 9 }, { rank: '7', suit: 'spades', value: 7 }],
-                    dealerUpcard: { rank: '5', suit: 'clubs', value: 5 },
-                    handValue: 16,
-                    canDouble: false,
-                    canSplit: false,
-                    canSurrender: false,
-                },
+        it('should increment frequency for repeated mistakes', () => {
+            const decisionPayload = {
+                wasCorrect: false,
                 playerAction: 'HIT',
                 optimalAction: 'STAND',
-                wasCorrect: false,
-                timestamp: Date.now(),
+                scenario: { playerValue: 16, dealerUpcard: 10, tableType: 'standard' }
             };
 
-            store.dispatch(recordPlayerAction(actionRecord));
+            store.dispatch(recordDecision(decisionPayload));
+            store.dispatch(recordDecision(decisionPayload));
+
             const state = store.getState().session;
 
             expect(state.mistakePatterns).toHaveLength(1);
             expect(state.mistakePatterns[0].frequency).toBe(2);
         });
-    });
 
-    describe('skill level calculation', () => {
-        it('should update skill level to INTERMEDIATE with good accuracy', () => {
-            const store = createTestStore({
-                isActive: true,
-                totalDecisions: 20,
-                correctDecisions: 18, // 90% accuracy
-            });
+        it('should calculate accuracy correctly with mixed decisions', () => {
+            store.dispatch(recordDecision({
+                wasCorrect: true,
+                playerAction: 'HIT',
+                optimalAction: 'HIT',
+                scenario: { playerValue: 12, dealerUpcard: 6, tableType: 'standard' }
+            }));
+            store.dispatch(recordDecision({
+                wasCorrect: false,
+                playerAction: 'HIT',
+                optimalAction: 'STAND',
+                scenario: { playerValue: 16, dealerUpcard: 10, tableType: 'standard' }
+            }));
+            store.dispatch(recordDecision({
+                wasCorrect: true,
+                playerAction: 'STAND',
+                optimalAction: 'STAND',
+                scenario: { playerValue: 17, dealerUpcard: 8, tableType: 'standard' }
+            }));
 
-            store.dispatch(updateSkillLevel());
             const state = store.getState().session;
 
-            expect(state.skillLevel).toBe('INTERMEDIATE');
+            expect(state.currentSession.decisionsTotal).toBe(3);
+            expect(state.currentSession.decisionsCorrect).toBe(2);
+            expect(state.currentSession.accuracy).toBeCloseTo(66.67, 1);
+        });
+    });
+
+    describe('game result tracking', () => {
+        it('should record game results', () => {
+            store.dispatch(recordGameResult({
+                wins: 1,
+                losses: 0,
+                pushes: 0,
+                surrenders: 0,
+                blackjacks: 1,
+                busts: 0
+            }));
+
+            const state = store.getState().session;
+
+            expect(state.currentSession.handsPlayed).toBe(1);
+            expect(state.currentSession.wins).toBe(1);
+            expect(state.currentSession.blackjacks).toBe(1);
         });
 
-        it('should update skill level to ADVANCED with excellent accuracy', () => {
-            const store = createTestStore({
-                isActive: true,
-                totalDecisions: 50,
-                correctDecisions: 48, // 96% accuracy
-            });
+        it('should update recent accuracy array', () => {
+            // First record some decisions to have accuracy
+            store.dispatch(recordDecision({
+                wasCorrect: true,
+                playerAction: 'HIT',
+                optimalAction: 'HIT',
+                scenario: { playerValue: 12, dealerUpcard: 6, tableType: 'standard' }
+            }));
+
+            store.dispatch(recordGameResult({
+                wins: 1,
+                losses: 0,
+                pushes: 0,
+                surrenders: 0,
+                blackjacks: 0,
+                busts: 0
+            }));
+
+            const state = store.getState().session;
+
+            expect(state.currentSession.recentAccuracy).toHaveLength(1);
+            expect(state.currentSession.recentAccuracy[0]).toBe(100);
+        });
+
+        it('should limit recent accuracy to 10 entries', () => {
+            // Record 12 games to test the limit
+            for (let i = 0; i < 12; i++) {
+                store.dispatch(recordDecision({
+                    wasCorrect: true,
+                    playerAction: 'HIT',
+                    optimalAction: 'HIT',
+                    scenario: { playerValue: 12, dealerUpcard: 6, tableType: 'standard' }
+                }));
+
+                store.dispatch(recordGameResult({
+                    wins: 1,
+                    losses: 0,
+                    pushes: 0,
+                    surrenders: 0,
+                    blackjacks: 0,
+                    busts: 0
+                }));
+            }
+
+            const state = store.getState().session;
+
+            expect(state.currentSession.recentAccuracy).toHaveLength(10);
+        });
+
+        it('should calculate improvement trend', () => {
+            // Create pattern: 5 games with lower accuracy, then 5 with higher
+            for (let i = 0; i < 5; i++) {
+                store.dispatch(recordDecision({
+                    wasCorrect: false,
+                    playerAction: 'HIT',
+                    optimalAction: 'STAND',
+                    scenario: { playerValue: 16, dealerUpcard: 10, tableType: 'standard' }
+                }));
+
+                store.dispatch(recordGameResult({
+                    wins: 0,
+                    losses: 1,
+                    pushes: 0,
+                    surrenders: 0,
+                    blackjacks: 0,
+                    busts: 0
+                }));
+            }
+
+            for (let i = 0; i < 5; i++) {
+                store.dispatch(recordDecision({
+                    wasCorrect: true,
+                    playerAction: 'STAND',
+                    optimalAction: 'STAND',
+                    scenario: { playerValue: 17, dealerUpcard: 8, tableType: 'standard' }
+                }));
+
+                store.dispatch(recordGameResult({
+                    wins: 1,
+                    losses: 0,
+                    pushes: 0,
+                    surrenders: 0,
+                    blackjacks: 0,
+                    busts: 0
+                }));
+            }
+
+            const state = store.getState().session;
+
+            expect(state.currentSession.improvementTrend).toBeGreaterThan(0);
+        });
+    });
+
+    describe('game history', () => {
+        it('should add history entry', () => {
+            const historyEntry = createMockGameHistoryEntry();
+
+            store.dispatch(addHistoryEntry(historyEntry));
+
+            const state = store.getState().session;
+
+            expect(state.gameHistory).toHaveLength(1);
+            expect(state.gameHistory[0]).toEqual(historyEntry);
+        });
+
+        it('should add new entries to the beginning of history', () => {
+            const entry1 = createMockGameHistoryEntry({ id: 'game-1' });
+            const entry2 = createMockGameHistoryEntry({ id: 'game-2' });
+
+            store.dispatch(addHistoryEntry(entry1));
+            store.dispatch(addHistoryEntry(entry2));
+
+            const state = store.getState().session;
+
+            expect(state.gameHistory[0].id).toBe('game-2');
+            expect(state.gameHistory[1].id).toBe('game-1');
+        });
+
+        it('should limit history to maxHistoryEntries', () => {
+            // First set a small limit
+            store.dispatch(setMaxHistoryEntries(3));
+
+            // Add 5 entries
+            for (let i = 0; i < 5; i++) {
+                store.dispatch(addHistoryEntry(createMockGameHistoryEntry({ id: `game-${i}` })));
+            }
+
+            const state = store.getState().session;
+
+            expect(state.gameHistory).toHaveLength(3);
+            expect(state.gameHistory[0].id).toBe('game-4'); // Most recent
+            expect(state.gameHistory[2].id).toBe('game-2'); // Oldest kept
+        });
+
+        it('should clear history', () => {
+            store.dispatch(addHistoryEntry(createMockGameHistoryEntry()));
+            store.dispatch(clearHistory());
+
+            const state = store.getState().session;
+
+            expect(state.gameHistory).toHaveLength(0);
+        });
+
+        it('should set max history entries and trim if necessary', () => {
+            // Add 5 entries
+            for (let i = 0; i < 5; i++) {
+                store.dispatch(addHistoryEntry(createMockGameHistoryEntry({ id: `game-${i}` })));
+            }
+
+            // Set limit to 3
+            store.dispatch(setMaxHistoryEntries(3));
+
+            const state = store.getState().session;
+
+            expect(state.maxHistoryEntries).toBe(3);
+            expect(state.gameHistory).toHaveLength(3);
+        });
+    });
+
+    describe('mistake pattern management', () => {
+        it('should clear mistake patterns', () => {
+            store.dispatch(recordDecision({
+                wasCorrect: false,
+                playerAction: 'HIT',
+                optimalAction: 'STAND',
+                scenario: { playerValue: 16, dealerUpcard: 10, tableType: 'standard' }
+            }));
+
+            store.dispatch(clearMistakePatterns());
+
+            const state = store.getState().session;
+
+            expect(state.mistakePatterns).toHaveLength(0);
+        });
+
+        it('should remove specific mistake pattern', () => {
+            store.dispatch(recordDecision({
+                wasCorrect: false,
+                playerAction: 'HIT',
+                optimalAction: 'STAND',
+                scenario: { playerValue: 16, dealerUpcard: 10, tableType: 'standard' }
+            }));
+            store.dispatch(recordDecision({
+                wasCorrect: false,
+                playerAction: 'STAND',
+                optimalAction: 'HIT',
+                scenario: { playerValue: 12, dealerUpcard: 6, tableType: 'standard' }
+            }));
+
+            store.dispatch(removeMistakePattern('16-10-standard'));
+
+            const state = store.getState().session;
+
+            expect(state.mistakePatterns).toHaveLength(1);
+            expect(state.mistakePatterns[0].scenario).toBe('12-6-standard');
+        });
+    });
+
+    describe('skill level assessment', () => {
+        it('should update skill level to ADVANCED with high accuracy', () => {
+            // Play 20+ hands with 90%+ accuracy
+            for (let i = 0; i < 19; i++) {
+                store.dispatch(recordDecision({
+                    wasCorrect: true,
+                    playerAction: 'HIT',
+                    optimalAction: 'HIT',
+                    scenario: { playerValue: 12, dealerUpcard: 6, tableType: 'standard' }
+                }));
+                store.dispatch(recordGameResult({
+                    wins: 1,
+                    losses: 0,
+                    pushes: 0,
+                    surrenders: 0,
+                    blackjacks: 0,
+                    busts: 0
+                }));
+            }
+
+            // One mistake to get exactly 95% accuracy (19/20)
+            store.dispatch(recordDecision({
+                wasCorrect: false,
+                playerAction: 'HIT',
+                optimalAction: 'STAND',
+                scenario: { playerValue: 16, dealerUpcard: 10, tableType: 'standard' }
+            }));
+            store.dispatch(recordGameResult({
+                wins: 0,
+                losses: 1,
+                pushes: 0,
+                surrenders: 0,
+                blackjacks: 0,
+                busts: 0
+            }));
 
             store.dispatch(updateSkillLevel());
+
             const state = store.getState().session;
 
             expect(state.skillLevel).toBe('ADVANCED');
         });
 
-        it('should remain BEGINNER with low accuracy', () => {
-            const store = createTestStore({
-                isActive: true,
-                totalDecisions: 10,
-                correctDecisions: 6, // 60% accuracy
-            });
+        it('should update skill level to INTERMEDIATE with medium accuracy', () => {
+            // Play 20+ hands with 75-90% accuracy
+            for (let i = 0; i < 15; i++) {
+                store.dispatch(recordDecision({
+                    wasCorrect: true,
+                    playerAction: 'HIT',
+                    optimalAction: 'HIT',
+                    scenario: { playerValue: 12, dealerUpcard: 6, tableType: 'standard' }
+                }));
+                store.dispatch(recordGameResult({
+                    wins: 1,
+                    losses: 0,
+                    pushes: 0,
+                    surrenders: 0,
+                    blackjacks: 0,
+                    busts: 0
+                }));
+            }
+
+            // 5 mistakes to get 75% accuracy (15/20)
+            for (let i = 0; i < 5; i++) {
+                store.dispatch(recordDecision({
+                    wasCorrect: false,
+                    playerAction: 'HIT',
+                    optimalAction: 'STAND',
+                    scenario: { playerValue: 16, dealerUpcard: 10, tableType: 'standard' }
+                }));
+                store.dispatch(recordGameResult({
+                    wins: 0,
+                    losses: 1,
+                    pushes: 0,
+                    surrenders: 0,
+                    blackjacks: 0,
+                    busts: 0
+                }));
+            }
 
             store.dispatch(updateSkillLevel());
+
+            const state = store.getState().session;
+
+            expect(state.skillLevel).toBe('INTERMEDIATE');
+        });
+
+        it('should keep BEGINNER with low accuracy', () => {
+            // Play 20+ hands with <75% accuracy
+            for (let i = 0; i < 10; i++) {
+                store.dispatch(recordDecision({
+                    wasCorrect: true,
+                    playerAction: 'HIT',
+                    optimalAction: 'HIT',
+                    scenario: { playerValue: 12, dealerUpcard: 6, tableType: 'standard' }
+                }));
+                store.dispatch(recordGameResult({
+                    wins: 1,
+                    losses: 0,
+                    pushes: 0,
+                    surrenders: 0,
+                    blackjacks: 0,
+                    busts: 0
+                }));
+            }
+
+            for (let i = 0; i < 10; i++) {
+                store.dispatch(recordDecision({
+                    wasCorrect: false,
+                    playerAction: 'HIT',
+                    optimalAction: 'STAND',
+                    scenario: { playerValue: 16, dealerUpcard: 10, tableType: 'standard' }
+                }));
+                store.dispatch(recordGameResult({
+                    wins: 0,
+                    losses: 1,
+                    pushes: 0,
+                    surrenders: 0,
+                    blackjacks: 0,
+                    busts: 0
+                }));
+            }
+
+            store.dispatch(updateSkillLevel());
+
             const state = store.getState().session;
 
             expect(state.skillLevel).toBe('BEGINNER');
         });
 
-        it('should require minimum decisions for skill level upgrade', () => {
-            const store = createTestStore({
-                isActive: true,
-                totalDecisions: 5, // Too few decisions
-                correctDecisions: 5, // 100% accuracy but not enough data
-            });
+        it('should not update skill level with insufficient hands', () => {
+            // Play only 10 hands (less than 20 required)
+            for (let i = 0; i < 10; i++) {
+                store.dispatch(recordDecision({
+                    wasCorrect: true,
+                    playerAction: 'HIT',
+                    optimalAction: 'HIT',
+                    scenario: { playerValue: 12, dealerUpcard: 6, tableType: 'standard' }
+                }));
+                store.dispatch(recordGameResult({
+                    wins: 1,
+                    losses: 0,
+                    pushes: 0,
+                    surrenders: 0,
+                    blackjacks: 0,
+                    busts: 0
+                }));
+            }
 
             store.dispatch(updateSkillLevel());
+
             const state = store.getState().session;
 
-            expect(state.skillLevel).toBe('BEGINNER');
+            expect(state.skillLevel).toBe('BEGINNER'); // Should remain unchanged
         });
     });
 
-    describe('derived calculations', () => {
-        it('should calculate accuracy correctly', () => {
-            const store = createTestStore({
-                totalDecisions: 20,
-                correctDecisions: 16,
-            });
+    describe('settings', () => {
+        it('should set tracking enabled', () => {
+            store.dispatch(setTrackingEnabled(false));
 
             const state = store.getState().session;
-            const accuracy = state.totalDecisions > 0 ? (state.correctDecisions / state.totalDecisions) * 100 : 0;
 
-            expect(accuracy).toBe(80);
+            expect(state.trackingEnabled).toBe(false);
         });
 
-        it('should handle zero decisions for accuracy calculation', () => {
-            const store = createTestStore({
-                totalDecisions: 0,
-                correctDecisions: 0,
-            });
+        it('should toggle tracking enabled', () => {
+            store.dispatch(setTrackingEnabled(false));
+            store.dispatch(setTrackingEnabled(true));
 
             const state = store.getState().session;
-            const accuracy = state.totalDecisions > 0 ? (state.correctDecisions / state.totalDecisions) * 100 : 0;
 
-            expect(accuracy).toBe(0);
+            expect(state.trackingEnabled).toBe(true);
+        });
+    });
+
+    describe('data management', () => {
+        it('should reset all data', () => {
+            // Add some data first
+            store.dispatch(recordDecision({
+                wasCorrect: true,
+                playerAction: 'HIT',
+                optimalAction: 'HIT',
+                scenario: { playerValue: 12, dealerUpcard: 6, tableType: 'standard' }
+            }));
+            store.dispatch(addHistoryEntry(createMockGameHistoryEntry()));
+
+            store.dispatch(resetAllData());
+
+            const state = store.getState().session;
+
+            expect(state.currentSession.decisionsTotal).toBe(0);
+            expect(state.gameHistory).toHaveLength(0);
+            expect(state.mistakePatterns).toHaveLength(0);
+            expect(state.allTimeStats.decisionsTotal).toBe(0);
+            expect(state.skillLevel).toBe('BEGINNER');
+            expect(state.trackingEnabled).toBe(true);
         });
 
-        it('should calculate session duration correctly', () => {
-            const startTime = Date.now() - 60000; // 1 minute ago
-            const endTime = Date.now();
+        it('should import session data', () => {
+            const mockData = {
+                gameHistory: [createMockGameHistoryEntry()],
+                mistakePatterns: [createMockMistakePattern()],
+                allTimeStats: createMockSessionStats({
+                    handsPlayed: 100,
+                    decisionsTotal: 200,
+                    accuracy: 85
+                })
+            };
 
-            const store = createTestStore({
-                startTime,
-                endTime,
-            });
+            store.dispatch(importSessionData(mockData));
 
             const state = store.getState().session;
-            const duration = state.endTime && state.startTime ? state.endTime - state.startTime : 0;
 
-            expect(duration).toBeGreaterThanOrEqual(59000);
-            expect(duration).toBeLessThanOrEqual(61000);
+            expect(state.gameHistory).toHaveLength(1);
+            expect(state.mistakePatterns).toHaveLength(1);
+            expect(state.allTimeStats.handsPlayed).toBe(100);
+            expect(state.allTimeStats.decisionsTotal).toBe(200);
+            expect(state.allTimeStats.accuracy).toBe(85);
+        });
+    });
+
+    describe('edge cases and error handling', () => {
+        it('should handle division by zero in accuracy calculation', () => {
+            const state = store.getState().session;
+
+            expect(state.currentSession.accuracy).toBe(0);
+            expect(state.allTimeStats.accuracy).toBe(0);
+        });
+
+        it('should handle empty recent accuracy array in improvement trend', () => {
+            store.dispatch(recordGameResult({
+                wins: 1,
+                losses: 0,
+                pushes: 0,
+                surrenders: 0,
+                blackjacks: 0,
+                busts: 0
+            }));
+
+            const state = store.getState().session;
+
+            expect(state.currentSession.improvementTrend).toBe(0);
+        });
+
+        it('should handle removing non-existent mistake pattern', () => {
+            store.dispatch(removeMistakePattern('non-existent-scenario'));
+
+            const state = store.getState().session;
+
+            expect(state.mistakePatterns).toHaveLength(0);
+        });
+
+        it('should handle setting max history entries to 0', () => {
+            store.dispatch(addHistoryEntry(createMockGameHistoryEntry()));
+            store.dispatch(setMaxHistoryEntries(0));
+
+            const state = store.getState().session;
+
+            expect(state.maxHistoryEntries).toBe(0);
+            expect(state.gameHistory).toHaveLength(0);
         });
     });
 });

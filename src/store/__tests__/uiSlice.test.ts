@@ -1,19 +1,19 @@
 import { configureStore } from '@reduxjs/toolkit';
-import uiSlice, {
-    setTheme,
-    toggleTheme,
-    setStrategyGuideOpen,
-    setGameHistoryOpen,
-    setFeedbackMessage,
-    clearFeedbackMessage,
-    setMobileDrawerOpen,
-    UIState,
+import uiReducer, {
+    uiSlice,
+    setDarkMode,
+    toggleHistoryModal,
+    toggleStrategyGuide,
+    addFeedbackMessage,
+    clearAllFeedback,
+    toggleMobileMenu,
 } from '../uiSlice';
+import type { UIState } from '../uiSlice';
 
 const createTestStore = (initialState?: Partial<UIState>) => {
     return configureStore({
         reducer: {
-            ui: uiSlice.reducer,
+            ui: uiReducer,
         },
         preloadedState: {
             ui: {
@@ -29,11 +29,11 @@ describe('uiSlice', () => {
         it('should have correct initial state', () => {
             const state = uiSlice.getInitialState();
 
-            expect(state.theme).toBe('light');
-            expect(state.strategyGuideOpen).toBe(true);
-            expect(state.gameHistoryOpen).toBe(false);
-            expect(state.feedbackMessage).toBeNull();
-            expect(state.mobileDrawerOpen).toBe(false);
+            expect(state.darkMode).toBe(false);
+            expect(state.showStrategyGuide).toBe(true);
+            expect(state.showHistory).toBe(false);
+            expect(state.feedbackMessages).toEqual([]);
+            expect(state.mobileMenuOpen).toBe(false);
         });
     });
 
@@ -41,159 +41,190 @@ describe('uiSlice', () => {
         it('should set theme to dark', () => {
             const store = createTestStore();
 
-            store.dispatch(setTheme('dark'));
+            store.dispatch(setDarkMode(true));
             const state = store.getState().ui;
 
-            expect(state.theme).toBe('dark');
+            expect(state.darkMode).toBe(true);
         });
 
         it('should set theme to light', () => {
-            const store = createTestStore({ theme: 'dark' });
+            const store = createTestStore({ darkMode: true });
 
-            store.dispatch(setTheme('light'));
+            store.dispatch(setDarkMode(false));
             const state = store.getState().ui;
 
-            expect(state.theme).toBe('light');
+            expect(state.darkMode).toBe(false);
         });
 
         it('should toggle theme from light to dark', () => {
-            const store = createTestStore({ theme: 'light' });
+            const store = createTestStore({ darkMode: false });
 
-            store.dispatch(toggleTheme());
+            store.dispatch(setDarkMode(true));
             const state = store.getState().ui;
 
-            expect(state.theme).toBe('dark');
+            expect(state.darkMode).toBe(true);
         });
 
         it('should toggle theme from dark to light', () => {
-            const store = createTestStore({ theme: 'dark' });
+            const store = createTestStore({ darkMode: true });
 
-            store.dispatch(toggleTheme());
+            store.dispatch(setDarkMode(false));
             const state = store.getState().ui;
 
-            expect(state.theme).toBe('light');
+            expect(state.darkMode).toBe(false);
         });
     });
 
     describe('modal and panel management', () => {
         it('should open strategy guide', () => {
-            const store = createTestStore({ strategyGuideOpen: false });
+            const store = createTestStore({ showStrategyGuide: false });
 
-            store.dispatch(setStrategyGuideOpen(true));
+            store.dispatch(toggleStrategyGuide());
             const state = store.getState().ui;
 
-            expect(state.strategyGuideOpen).toBe(true);
+            expect(state.showStrategyGuide).toBe(true);
         });
 
         it('should close strategy guide', () => {
-            const store = createTestStore({ strategyGuideOpen: true });
+            const store = createTestStore({ showStrategyGuide: true });
 
-            store.dispatch(setStrategyGuideOpen(false));
+            store.dispatch(toggleStrategyGuide());
             const state = store.getState().ui;
 
-            expect(state.strategyGuideOpen).toBe(false);
+            expect(state.showStrategyGuide).toBe(false);
         });
 
         it('should open game history modal', () => {
-            const store = createTestStore({ gameHistoryOpen: false });
+            const store = createTestStore({ showHistory: false });
 
-            store.dispatch(setGameHistoryOpen(true));
+            store.dispatch(toggleHistoryModal());
             const state = store.getState().ui;
 
-            expect(state.gameHistoryOpen).toBe(true);
+            expect(state.showHistory).toBe(true);
         });
 
         it('should close game history modal', () => {
-            const store = createTestStore({ gameHistoryOpen: true });
+            const store = createTestStore({ showHistory: true });
 
-            store.dispatch(setGameHistoryOpen(false));
+            store.dispatch(toggleHistoryModal());
             const state = store.getState().ui;
 
-            expect(state.gameHistoryOpen).toBe(false);
+            expect(state.showHistory).toBe(false);
         });
 
         it('should open mobile drawer', () => {
-            const store = createTestStore({ mobileDrawerOpen: false });
+            const store = createTestStore({ mobileMenuOpen: false });
 
-            store.dispatch(setMobileDrawerOpen(true));
+            store.dispatch(toggleMobileMenu());
             const state = store.getState().ui;
 
-            expect(state.mobileDrawerOpen).toBe(true);
+            expect(state.mobileMenuOpen).toBe(true);
         });
 
         it('should close mobile drawer', () => {
-            const store = createTestStore({ mobileDrawerOpen: true });
+            const store = createTestStore({ mobileMenuOpen: true });
 
-            store.dispatch(setMobileDrawerOpen(false));
+            store.dispatch(toggleMobileMenu());
             const state = store.getState().ui;
 
-            expect(state.mobileDrawerOpen).toBe(false);
+            expect(state.mobileMenuOpen).toBe(false);
         });
     });
 
     describe('feedback message management', () => {
         it('should set feedback message', () => {
             const store = createTestStore();
+
             const message = {
-                text: 'Correct strategy!',
+                id: 'test-1',
                 type: 'success' as const,
-                optimalAction: 'STAND',
+                title: 'Success',
+                message: 'Operation completed',
+                autoHide: true,
+                duration: 3000,
+                timestamp: Date.now(),
             };
 
-            store.dispatch(setFeedbackMessage(message));
+            store.dispatch(addFeedbackMessage(message));
             const state = store.getState().ui;
 
-            expect(state.feedbackMessage).toEqual(message);
+            expect(state.feedbackMessages).toHaveLength(1);
+            const addedMessage = state.feedbackMessages[0];
+            expect(addedMessage.type).toBe('success');
+            expect(addedMessage.title).toBe('Success');
+            expect(addedMessage.message).toBe('Operation completed');
+            expect(addedMessage.autoHide).toBe(true);
+            expect(addedMessage.duration).toBe(3000);
+            expect(addedMessage.id).toBeDefined();
+            expect(addedMessage.timestamp).toBeDefined();
         });
 
         it('should set error feedback message', () => {
             const store = createTestStore();
+
             const message = {
-                text: 'Incorrect! You should STAND',
+                id: 'test-error',
                 type: 'error' as const,
-                optimalAction: 'STAND',
+                title: 'Error',
+                message: 'Something went wrong',
+                autoHide: false,
+                duration: 0,
+                timestamp: Date.now(),
             };
 
-            store.dispatch(setFeedbackMessage(message));
+            store.dispatch(addFeedbackMessage(message));
             const state = store.getState().ui;
 
-            expect(state.feedbackMessage).toEqual(message);
+            expect(state.feedbackMessages).toHaveLength(1);
+            expect(state.feedbackMessages[0].type).toBe('error');
         });
 
         it('should clear feedback message', () => {
             const store = createTestStore({
-                feedbackMessage: {
-                    text: 'Test message',
+                feedbackMessages: [{
+                    id: 'test-1',
                     type: 'success',
-                    optimalAction: 'HIT',
-                },
+                    title: 'Success',
+                    message: 'Test message',
+                    autoHide: true,
+                    duration: 3000,
+                    timestamp: Date.now(),
+                }],
             });
 
-            store.dispatch(clearFeedbackMessage());
+            store.dispatch(clearAllFeedback());
             const state = store.getState().ui;
 
-            expect(state.feedbackMessage).toBeNull();
+            expect(state.feedbackMessages).toEqual([]);
         });
 
         it('should overwrite existing feedback message', () => {
             const store = createTestStore({
-                feedbackMessage: {
-                    text: 'Old message',
-                    type: 'error',
-                    optimalAction: 'HIT',
-                },
+                feedbackMessages: [{
+                    id: 'test-1',
+                    type: 'info',
+                    title: 'Info',
+                    message: 'First message',
+                    autoHide: true,
+                    duration: 3000,
+                    timestamp: Date.now(),
+                }],
             });
 
             const newMessage = {
-                text: 'New message',
-                type: 'success' as const,
-                optimalAction: 'STAND',
+                id: 'test-2',
+                type: 'warning' as const,
+                title: 'Warning',
+                message: 'Second message',
+                autoHide: true,
+                duration: 3000,
+                timestamp: Date.now(),
             };
 
-            store.dispatch(setFeedbackMessage(newMessage));
+            store.dispatch(addFeedbackMessage(newMessage));
             const state = store.getState().ui;
 
-            expect(state.feedbackMessage).toEqual(newMessage);
+            expect(state.feedbackMessages).toHaveLength(2);
         });
     });
 
@@ -201,68 +232,46 @@ describe('uiSlice', () => {
         it('should handle multiple UI state changes', () => {
             const store = createTestStore();
 
-            // Simulate a complex user interaction sequence
-            store.dispatch(setTheme('dark'));
-            store.dispatch(setStrategyGuideOpen(false));
-            store.dispatch(setGameHistoryOpen(true));
-            store.dispatch(setFeedbackMessage({
-                text: 'Good decision!',
-                type: 'success',
-                optimalAction: 'DOUBLE',
-            }));
+            store.dispatch(setDarkMode(true));
+            store.dispatch(toggleStrategyGuide());
+            store.dispatch(toggleHistoryModal());
 
             const state = store.getState().ui;
 
-            expect(state.theme).toBe('dark');
-            expect(state.strategyGuideOpen).toBe(false);
-            expect(state.gameHistoryOpen).toBe(true);
-            expect(state.feedbackMessage?.text).toBe('Good decision!');
-            expect(state.feedbackMessage?.type).toBe('success');
+            expect(state.darkMode).toBe(true);
+            expect(state.showStrategyGuide).toBe(false);
+            expect(state.showHistory).toBe(true);
         });
 
         it('should handle mobile-specific UI state', () => {
             const store = createTestStore();
 
-            // Simulate mobile interaction
-            store.dispatch(setMobileDrawerOpen(true));
-            store.dispatch(setStrategyGuideOpen(false)); // Close desktop guide
-            store.dispatch(setFeedbackMessage({
-                text: 'Touch-friendly feedback',
-                type: 'info',
-                optimalAction: 'HIT',
-            }));
-
+            store.dispatch(toggleMobileMenu());
             const state = store.getState().ui;
 
-            expect(state.mobileDrawerOpen).toBe(true);
-            expect(state.strategyGuideOpen).toBe(false);
-            expect(state.feedbackMessage?.text).toBe('Touch-friendly feedback');
+            expect(state.mobileMenuOpen).toBe(true);
         });
 
         it('should reset UI state properly for new game', () => {
             const store = createTestStore({
-                gameHistoryOpen: true,
-                feedbackMessage: {
-                    text: 'Previous game feedback',
-                    type: 'error',
-                    optimalAction: 'STAND',
-                },
-                mobileDrawerOpen: true,
+                darkMode: true,
+                showHistory: true,
+                feedbackMessages: [{
+                    id: 'test',
+                    type: 'info',
+                    title: 'Test',
+                    message: 'Test message',
+                    autoHide: true,
+                    duration: 3000,
+                    timestamp: Date.now(),
+                }],
             });
 
-            // Simulate new game reset - typically only feedback and modals reset
-            store.dispatch(clearFeedbackMessage());
-            store.dispatch(setGameHistoryOpen(false));
-            store.dispatch(setMobileDrawerOpen(false));
-
+            store.dispatch(clearAllFeedback());
             const state = store.getState().ui;
 
-            expect(state.feedbackMessage).toBeNull();
-            expect(state.gameHistoryOpen).toBe(false);
-            expect(state.mobileDrawerOpen).toBe(false);
-            // Theme and strategy guide state should persist
-            expect(state.theme).toBe('light'); // unchanged
-            expect(state.strategyGuideOpen).toBe(true); // unchanged
+            expect(state.feedbackMessages).toEqual([]);
+            expect(state.darkMode).toBe(true); // Theme should persist
         });
     });
 
@@ -270,45 +279,53 @@ describe('uiSlice', () => {
         it('should handle invalid theme values gracefully', () => {
             const store = createTestStore();
 
-            // TypeScript would prevent this, but testing runtime behavior
-            store.dispatch(setTheme('dark'));
+            store.dispatch(setDarkMode(true));
+            store.dispatch(setDarkMode(false));
             const state = store.getState().ui;
 
-            expect(['light', 'dark']).toContain(state.theme);
+            expect(state.darkMode).toBe(false);
         });
 
         it('should handle rapid feedback message changes', () => {
             const store = createTestStore();
 
-            // Rapid successive feedback messages
-            store.dispatch(setFeedbackMessage({
-                text: 'Message 1',
-                type: 'success',
-                optimalAction: 'HIT',
-            }));
+            const message1 = {
+                id: 'rapid-1',
+                type: 'info' as const,
+                title: 'Message 1',
+                message: 'First rapid message',
+                autoHide: true,
+                duration: 1000,
+                timestamp: Date.now(),
+            };
 
-            store.dispatch(setFeedbackMessage({
-                text: 'Message 2',
-                type: 'error',
-                optimalAction: 'STAND',
-            }));
+            const message2 = {
+                id: 'rapid-2',
+                type: 'warning' as const,
+                title: 'Message 2',
+                message: 'Second rapid message',
+                autoHide: true,
+                duration: 1000,
+                timestamp: Date.now() + 100,
+            };
 
-            store.dispatch(clearFeedbackMessage());
+            store.dispatch(addFeedbackMessage(message1));
+            store.dispatch(addFeedbackMessage(message2));
 
             const state = store.getState().ui;
-            expect(state.feedbackMessage).toBeNull();
+            expect(state.feedbackMessages).toHaveLength(2);
         });
 
         it('should maintain state consistency during theme toggles', () => {
-            const store = createTestStore({ theme: 'light' });
+            const store = createTestStore({ darkMode: false });
 
             // Multiple rapid toggles
-            store.dispatch(toggleTheme()); // dark
-            store.dispatch(toggleTheme()); // light
-            store.dispatch(toggleTheme()); // dark
+            store.dispatch(setDarkMode(true));
+            store.dispatch(setDarkMode(false));
+            store.dispatch(setDarkMode(true));
 
             const state = store.getState().ui;
-            expect(state.theme).toBe('dark');
+            expect(state.darkMode).toBe(true);
         });
     });
 });

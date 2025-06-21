@@ -314,4 +314,5 @@ export const selectCardAnimationEnabled = (state: { ui: UIState }): boolean => s
 export const selectReducedMotion = (state: { ui: UIState }): boolean => state.ui.reducedMotion;
 export const selectHighContrast = (state: { ui: UIState }): boolean => state.ui.highContrast;
 
+export { uiSlice };
 export default uiSlice.reducer;

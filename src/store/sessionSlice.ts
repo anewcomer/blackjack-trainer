@@ -37,10 +37,10 @@ const sessionSlice = createSlice({
     startNewSession: (state) => {
       state.currentSession = createInitialSession();
     },
-    
+
     endCurrentSession: (state) => {
       state.currentSession.sessionEnd = Date.now();
-      
+
       // Update all-time stats
       state.allTimeStats.handsPlayed += state.currentSession.handsPlayed;
       state.allTimeStats.decisionsTotal += state.currentSession.decisionsTotal;
@@ -51,13 +51,13 @@ const sessionSlice = createSlice({
       state.allTimeStats.surrenders += state.currentSession.surrenders;
       state.allTimeStats.blackjacks += state.currentSession.blackjacks;
       state.allTimeStats.busts += state.currentSession.busts;
-      
+
       // Recalculate all-time accuracy
       if (state.allTimeStats.decisionsTotal > 0) {
         state.allTimeStats.accuracy = (state.allTimeStats.decisionsCorrect / state.allTimeStats.decisionsTotal) * 100;
       }
     },
-    
+
     // Decision tracking
     recordDecision: (state, action: PayloadAction<{
       wasCorrect: boolean;
@@ -70,23 +70,23 @@ const sessionSlice = createSlice({
       };
     }>) => {
       const { wasCorrect, playerAction, optimalAction, scenario } = action.payload;
-      
+
       // Update decision counters
       state.currentSession.decisionsTotal += 1;
       if (wasCorrect) {
         state.currentSession.decisionsCorrect += 1;
       }
-      
+
       // Recalculate accuracy
       state.currentSession.accuracy = (state.currentSession.decisionsCorrect / state.currentSession.decisionsTotal) * 100;
-      
+
       // Track mistake patterns
       if (!wasCorrect) {
         const mistakeKey = `${scenario.playerValue}-${scenario.dealerUpcard}-${scenario.tableType}`;
-        const existingMistake = state.mistakePatterns.find(m => 
+        const existingMistake = state.mistakePatterns.find(m =>
           m.scenario === mistakeKey
         );
-        
+
         if (existingMistake) {
           existingMistake.frequency += 1;
           existingMistake.lastOccurrence = Date.now();
@@ -104,7 +104,7 @@ const sessionSlice = createSlice({
         }
       }
     },
-    
+
     // Game outcome tracking
     recordGameResult: (state, action: PayloadAction<{
       wins: number;
@@ -115,7 +115,7 @@ const sessionSlice = createSlice({
       busts: number;
     }>) => {
       const { wins, losses, pushes, surrenders, blackjacks, busts } = action.payload;
-      
+
       state.currentSession.handsPlayed += 1;
       state.currentSession.wins += wins;
       state.currentSession.losses += losses;
@@ -123,13 +123,13 @@ const sessionSlice = createSlice({
       state.currentSession.surrenders += surrenders;
       state.currentSession.blackjacks += blackjacks;
       state.currentSession.busts += busts;
-      
+
       // Update recent accuracy (last 10 hands)
       state.currentSession.recentAccuracy.push(state.currentSession.accuracy);
       if (state.currentSession.recentAccuracy.length > 10) {
         state.currentSession.recentAccuracy.shift();
       }
-      
+
       // Calculate improvement trend
       if (state.currentSession.recentAccuracy.length >= 5) {
         const recent = state.currentSession.recentAccuracy.slice(-5);
@@ -141,47 +141,47 @@ const sessionSlice = createSlice({
         }
       }
     },
-    
+
     // Game history
     addHistoryEntry: (state, action: PayloadAction<GameHistoryEntry>) => {
       state.gameHistory.unshift(action.payload); // Add to beginning
-      
+
       // Limit history size
       if (state.gameHistory.length > state.maxHistoryEntries) {
         state.gameHistory = state.gameHistory.slice(0, state.maxHistoryEntries);
       }
     },
-    
+
     // History management
     clearHistory: (state) => {
       state.gameHistory = [];
     },
-    
+
     setMaxHistoryEntries: (state, action: PayloadAction<number>) => {
       state.maxHistoryEntries = action.payload;
-      
+
       // Trim history if necessary
       if (state.gameHistory.length > action.payload) {
         state.gameHistory = state.gameHistory.slice(0, action.payload);
       }
     },
-    
+
     // Mistake pattern management
     clearMistakePatterns: (state) => {
       state.mistakePatterns = [];
     },
-    
+
     removeMistakePattern: (state, action: PayloadAction<string>) => {
       state.mistakePatterns = state.mistakePatterns.filter(
         pattern => pattern.scenario !== action.payload
       );
     },
-    
+
     // Skill level assessment
     updateSkillLevel: (state) => {
       const accuracy = state.currentSession.accuracy;
       const handsPlayed = state.currentSession.handsPlayed;
-      
+
       if (handsPlayed >= 20) {
         if (accuracy >= 90) {
           state.skillLevel = 'ADVANCED';
@@ -192,12 +192,12 @@ const sessionSlice = createSlice({
         }
       }
     },
-    
+
     // Settings
     setTrackingEnabled: (state, action: PayloadAction<boolean>) => {
       state.trackingEnabled = action.payload;
     },
-    
+
     // Reset all data
     resetAllData: (state) => {
       return {
@@ -205,7 +205,7 @@ const sessionSlice = createSlice({
         currentSession: createInitialSession(),
       };
     },
-    
+
     // Import data (for restore functionality)
     importSessionData: (state, action: PayloadAction<{
       gameHistory: GameHistoryEntry[];
@@ -236,4 +236,5 @@ export const {
   importSessionData,
 } = sessionSlice.actions;
 
+export { sessionSlice };
 export default sessionSlice.reducer;
