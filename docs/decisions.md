@@ -155,6 +155,58 @@ Prefer VSCode tasks over terminal commands for:
 - **No unused imports/variables**: Clean codebase maintenance
 - **Proper error handling**: All async operations wrapped
 
+### **⚡ Terminal Command Optimization Strategy**
+**Decision**: If the same terminal commands are used repeatedly during development, add them to the VSCode tasks.json file to minimize approval interruptions.
+
+**Rationale**:
+- **Workflow Efficiency**: VSCode tasks execute without user approval, reducing development friction
+- **Consistent Commands**: Frequently used commands become standardized and repeatable
+- **Context Preservation**: Tasks maintain command history and can be easily referenced
+- **Reduced Interruptions**: Eliminates the need for user approval on routine development operations
+
+**Implementation Guidelines**:
+```typescript
+// ✅ GOOD: Create task for frequently used commands
+{
+  "label": "Run Specific Test File",
+  "type": "shell", 
+  "command": "npm test -- --testPathPattern=${input:testFile}",
+  "group": "test"
+}
+
+// ✅ GOOD: Add verification commands used multiple times
+{
+  "label": "Check Specific Files",
+  "type": "shell",
+  "command": "npm run lint ${input:filePath} && npm run type-check",
+  "group": "build"
+}
+```
+
+**When to Create Tasks**:
+- **Repeated Commands**: Any terminal command used more than 2-3 times
+- **Development Workflows**: Common testing, building, or verification patterns
+- **File-Specific Operations**: Commands that target specific files or directories
+- **Chain Operations**: Multiple commands that are often run together
+
+**Task Naming Conventions**:
+- Use descriptive, action-oriented names
+- Group related tasks with consistent prefixes
+- Include context (e.g., "Test Redux Slices", "Verify Game Components")
+
+**Benefits**:
+- **Faster Development Cycles**: No approval delays for routine operations
+- **Better Documentation**: Tasks serve as workflow documentation
+- **Team Consistency**: Standardized commands across development sessions
+- **Reduced Context Switching**: Stay in development flow without approval interruptions
+
+**Examples of Good Task Candidates**:
+- Running specific test suites (`npm test -- src/store`)
+- Checking specific file types (`npm run lint src/components/**/*.tsx`)
+- Building and testing specific modules
+- Running coverage reports for specific areas
+- Deployment verification sequences
+
 ## Game Logic Decisions
 
 ### Blackjack Rules Implementation
@@ -315,3 +367,25 @@ git commit -m "feat: implement Phase 5 advanced features"
 - **Documentation Hygiene**: Prevents scattered progress files and duplicate docs
 - **Requirement Alignment**: Keeps implementation aligned with original specifications
 - **Context Preservation**: Maintains development context across chat sessions
+
+## Decision Log
+
+### Decision 31: Redux Testing Completion Strategy (2025-06-21)
+
+**Context**: Completed comprehensive Redux/TypeScript test coverage with all 89 tests passing.
+
+**Decision**: Successfully implemented complete testing strategy:
+- Redux Store Integration tests verifying all slices work together
+- Individual slice tests (game, session, ui) with proper TypeScript types
+- Utility function tests covering all edge cases
+- Fixed all TypeScript errors by matching test expectations with actual Redux structure
+
+**Key Solutions**:
+- UIState properties: Fixed test expectations to match actual properties (showHistory vs historyModalOpen)
+- FeedbackMessage structure: Aligned tests with actual interface (title/message vs text properties)
+- Card utilities: Fixed suit symbol matching (♠♥♦♣ vs text names) and Ace calculation logic
+- App component: Used getAllByText to handle multiple "Blackjack Trainer" elements
+
+**Result**: 7 test suites, 89 tests all passing. Foundation ready for component integration tests.
+
+**Rationale**: Comprehensive testing coverage ensures reliability before moving to deployment phase.

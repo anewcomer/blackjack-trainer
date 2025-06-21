@@ -16,18 +16,6 @@
       }
     },
     {
-      "label": "Build Production",
-      "type": "shell",
-      "command": "npm run build",
-      "group": "build",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared"
-      }
-    },
-    {
       "label": "Run Tests",
       "type": "shell",
       "command": "npm test",
@@ -40,11 +28,10 @@
       }
     },
     {
-      "label": "Deploy to GitHub Pages",
+      "label": "Run Tests (Coverage)",
       "type": "shell",
-      "command": "npm run deploy",
-      "group": "build",
-      "dependsOn": "Build Production",
+      "command": "npm test -- --coverage --watchAll=false",
+      "group": "test",
       "presentation": {
         "echo": true,
         "reveal": "always",
@@ -53,76 +40,10 @@
       }
     },
     {
-      "label": "Lint Code",
+      "label": "Build Production",
       "type": "shell",
-      "command": "npm run lint",
+      "command": "npm run build",
       "group": "build",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared"
-      }
-    },
-    {
-      "label": "Type Check",
-      "type": "shell",
-      "command": "npm run type-check",
-      "group": "build",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared"
-      }
-    },
-    {
-      "label": "Git Status",
-      "type": "shell",
-      "command": "git status --porcelain",
-      "group": "build",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared"
-      }
-    },
-    {
-      "label": "Git Add All",
-      "type": "shell",
-      "command": "git add .",
-      "group": "build",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared"
-      }
-    },
-    {
-      "label": "Commit Foundation (Phase 1)",
-      "type": "shell",
-      "command": "git commit -m 'feat: implement complete Phase 1 foundation with Redux, utilities, and theme\n\n- Set up Redux store with game, session, and ui slices\n- Implement core game logic utilities (cardUtils, gameLogic, strategyEngine)\n- Create complete basic strategy charts data\n- Configure MUI theme with blackjack-specific styling\n- Build responsive layout structure with placeholder components\n- Add TypeScript interfaces for all major state domains\n- Establish component organization with proper exports'",
-      "group": "build",
-      "dependsOn": [
-        "Git Add All"
-      ],
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared"
-      }
-    },
-    {
-      "label": "Commit Core Game Logic (Phase 2)",
-      "type": "shell",
-      "command": "git commit -m 'feat: implement complete Phase 2 core game logic and automation\n\n- Add comprehensive game flow thunks with dealer automation\n- Implement all player actions (hit, stand, double, surrender)\n- Create dealer turn logic following house rules\n- Build hand resolution and outcome calculation system\n- Enhance GameArea component with functional UI\n- Add action logging for strategy analysis\n- Implement proper game phase management\n- Clean up code warnings and optimize imports\n- Verify working development server with full game functionality'",
-      "group": "build",
-      "dependsOn": [
-        "Git Add All"
-      ],
       "presentation": {
         "echo": true,
         "reveal": "always",
@@ -133,7 +54,7 @@
     {
       "label": "Verify Code Quality",
       "type": "shell",
-      "command": "npm run build && npm run lint && npm run type-check",
+      "command": "npm run lint && npm run type-check",
       "group": "build",
       "presentation": {
         "echo": true,
@@ -143,10 +64,35 @@
       }
     },
     {
-      "label": "Quick Verification",
+      "label": "Full Verification",
       "type": "shell",
-      "command": "npm run lint && npm run type-check",
+      "command": "npm run build && npm run lint && npm run type-check && npm test -- --coverage --watchAll=false",
       "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Deploy to GitHub Pages",
+      "type": "shell",
+      "command": "npm run deploy",
+      "group": "build",
+      "dependsOn": "Full Verification",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Test Redux Store",
+      "type": "shell",
+      "command": "npm test -- src/store/__tests__/integration.test.ts --verbose",
+      "group": "test",
       "presentation": {
         "echo": true,
         "reveal": "always",
