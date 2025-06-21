@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { SessionState, SessionStatistics, GameHistoryEntry, MistakePattern, ActionHistoryEntry } from '../types/session';
+import type { SessionState, SessionStatistics, GameHistoryEntry, MistakePattern } from '../types/session';
 
 const createInitialSession = (): SessionStatistics => ({
   sessionId: `session-${Date.now()}`,

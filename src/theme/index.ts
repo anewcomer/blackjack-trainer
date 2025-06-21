@@ -1,7 +1,6 @@
 // Material-UI theme configuration for the Blackjack Trainer
 
 import { createTheme, ThemeOptions } from '@mui/material/styles';
-import { BreakpointOverrides } from '@mui/material/styles';
 
 // Extend the theme with custom colors for blackjack-specific elements
 declare module '@mui/material/styles' {
@@ -296,9 +295,6 @@ export const createBlackjackTheme = (isDarkMode: boolean = false) => {
       },
     },
   };
-
-  // Create the theme
-  const theme = createTheme(themeOptions);
 
   // Custom theme variants for specific blackjack elements
   const blackjackTheme = createTheme({

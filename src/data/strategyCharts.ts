@@ -1,7 +1,7 @@
 // Basic strategy charts for blackjack
 // Based on standard basic strategy for single deck, dealer stands on soft 17
 
-import { StrategyTable, StrategyRow, StrategyAction } from '../types/strategy';
+import { StrategyTable, StrategyAction } from '../types/strategy';
 
 /**
  * Hard totals strategy chart (hands without aces or with aces counted as 1)
@@ -230,7 +230,7 @@ export function getStrategyAction(
   dealerUpcard: number // 2-10 (with 1 representing Ace)
 ): StrategyAction {
   const dealerIndex = dealerUpcard === 1 ? 9 : dealerUpcard - 2; // Convert to array index
-  
+
   let chart: StrategyTable;
   switch (tableType) {
     case 'HARD':
@@ -243,10 +243,10 @@ export function getStrategyAction(
       chart = PAIRS_CHART;
       break;
   }
-  
+
   // Find the appropriate row
   let row = chart.rows.find(r => r.playerValue === playerValue);
-  
+
   // For hard totals, use the closest available row
   if (!row && tableType === 'HARD') {
     if (playerValue <= 8) {
@@ -255,11 +255,11 @@ export function getStrategyAction(
       row = chart.rows[chart.rows.length - 1]; // Use "17+" row
     }
   }
-  
+
   if (!row || dealerIndex < 0 || dealerIndex >= row.actions.length) {
     return 'H'; // Default to hit if not found
   }
-  
+
   return row.actions[dealerIndex];
 }
 
