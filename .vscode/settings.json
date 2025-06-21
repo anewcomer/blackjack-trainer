@@ -1,0 +1,66 @@
+{
+    "github.copilot.chat.commitMessageConvention": "conventional",
+    "github.copilot.enable": {
+        "*": true,
+        "yaml": true,
+        "plaintext": false,
+        "markdown": true
+    },
+    "git.enableCommitSigning": false,
+    "git.confirmSync": false,
+    "git.autofetch": true,
+    "git.suggestSmartCommit": false,
+    "scm.defaultViewMode": "tree",
+    "scm.diffDecorations": "all",
+    "scm.showIncomingChanges": "always",
+    "scm.showOutgoingChanges": "always",
+    "workbench.colorCustomizations": {
+        "editorGutter.addedBackground": "#28a745",
+        "editorGutter.modifiedBackground": "#ffc107",
+        "editorGutter.deletedBackground": "#dc3545"
+    },
+    "editor.rulers": [
+        80,
+        120
+    ],
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit"
+    },
+    "typescript.preferences.importModuleSpecifier": "relative",
+    "typescript.updateImportsOnFileMove.enabled": "always",
+    "emmet.includeLanguages": {
+        "typescript": "html",
+        "typescriptreact": "html"
+    },
+    "files.associations": {
+        "*.tsx": "typescriptreact",
+        "*.ts": "typescript"
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/build": true,
+        "**/dist": true,
+        "**/.git": true
+    },
+    "files.exclude": {
+        "**/node_modules": true,
+        "**/build": true,
+        "**/dist": true
+    },
+    "typescript.preferences.quoteStyle": "single",
+    "javascript.preferences.quoteStyle": "single",
+    "prettier.singleQuote": true,
+    "prettier.trailingComma": "es5",
+    "prettier.semi": true,
+    "prettier.printWidth": 100,
+    "eslint.workingDirectories": [
+        "./"
+    ],
+    "eslint.validate": [
+        "javascript",
+        "javascriptreact",
+        "typescript",
+        "typescriptreact"
+    ]
+}
