@@ -2,6 +2,46 @@
 
 ## Code Verification Strategy
 
+### **🔧 JavaScript/TypeScript Extension Integration**
+**Decision**: Use the `get_errors` tool for rapid error detection instead of relying solely on terminal verification commands.
+
+**Rationale**:
+- **Faster Feedback Loop**: `get_errors` provides immediate TypeScript and ESLint feedback without running full compilation
+- **Targeted Error Detection**: Can check specific files or directories for issues
+- **Reduced Terminal Usage**: Less frequent need for `npm run lint && npm run type-check`
+- **More Efficient Development**: Catch issues early in the development process
+
+**Implementation Strategy**:
+```
+1. During Development: Use `get_errors` to check specific files after changes
+2. Before Major Changes: Use `get_errors` to verify current state
+3. Terminal Verification: Reserve for final checks and pre-commit validation
+4. Continuous Monitoring: Check errors after implementing new features
+```
+
+**Examples**:
+```typescript
+// ✅ GOOD: Check specific files after making changes
+get_errors(["/path/to/modified/file.ts", "/path/to/related/file.tsx"])
+
+// ✅ GOOD: Check multiple related files
+get_errors(["/src/components/strategy/StrategyGuide.tsx", "/src/utils/strategy/index.ts"])
+
+// ❌ AVOID: Checking directories (use specific files instead)
+get_errors(["/src/components/strategy"]) // This will fail
+```
+
+**Benefits**:
+- **Immediate Feedback**: No need to wait for full compilation cycles
+- **Development Velocity**: Faster iteration during feature development
+- **Precise Targeting**: Check only the files you're working on
+- **Error Context**: Get detailed error information with line numbers and descriptions
+
+**When to Use Each**:
+- **`get_errors`**: ✅ Quick checks during development, specific file validation
+- **Terminal Commands**: ✅ Final verification, comprehensive builds, pre-commit checks
+- **VSCode Tasks**: ✅ When available, for integrated workflow
+
 ### Preferred Verification Tasks
 **Use VSCode tasks for code verification instead of `npm start`** because:
 - `npm start` is a long-running process that doesn't complete on its own
@@ -48,6 +88,43 @@ Game flow requires coordinated async operations:
 - **resolveHands**: Outcome calculation and result setting
 
 ## Component Architecture
+
+### **🎯 SINGLE RESPONSIBILITY PRINCIPLE (MANDATORY)**
+**CRITICAL INSTRUCTION**: Prefer small, decomposed files and classes that follow the single responsibility principle.
+
+**This is a STRONG, EMPHASIZED requirement for all future development:**
+
+- **One Purpose Per File**: Each file should have a single, clear responsibility
+- **Small, Focused Modules**: Break large files into smaller, composable units
+- **Clear Separation of Concerns**: Logic, presentation, data, and utilities should be separate
+- **Easy to Test**: Small modules are easier to unit test and debug
+- **Better Maintainability**: Changes to one feature don't affect unrelated code
+
+**Examples of Good Decomposition**:
+```
+// ❌ BAD: Large, multi-purpose file
+strategyEngine.ts (500+ lines, multiple responsibilities)
+
+// ✅ GOOD: Decomposed into focused modules
+strategy/
+├── evaluators/
+│   ├── hardHandEvaluator.ts    (handles hard hand strategy)
+│   ├── softHandEvaluator.ts    (handles soft hand strategy)
+│   └── pairEvaluator.ts        (handles pair splitting strategy)
+├── converters/
+│   ├── actionConverter.ts      (ActionType ↔ StrategyAction)
+│   └── cardConverter.ts        (card value conversions)
+├── explanations/
+│   └── decisionExplainer.ts    (generates strategy explanations)
+└── index.ts                    (clean public API)
+```
+
+**Apply This Pattern To**:
+- Strategy engine components
+- Game logic utilities  
+- UI component families
+- Redux slice helpers
+- Testing utilities
 
 ### Layout Hierarchy
 ```

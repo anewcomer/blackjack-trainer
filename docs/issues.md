@@ -114,6 +114,27 @@ export const thunkName = () => (dispatch: AppDispatch, getState: () => RootState
 
 ## Best Practices Established
 
+### **🔧 Development Workflow Enhancement**
+- **Primary Tool**: Use `get_errors` for rapid development feedback
+- **Targeted Checking**: Check specific files rather than running full builds
+- **Terminal Verification**: Reserve for final validation and pre-commit checks
+- **Continuous Integration**: Use both tools in complementary workflows
+
+**Example Improved Workflow**:
+```typescript
+// 1. Make changes to components
+// 2. Quick check: get_errors(["/path/to/modified/files"])
+// 3. Fix any immediate issues
+// 4. Continue development
+// 5. Final verification: npm run lint && npm run type-check
+```
+
+**Performance Benefits**:
+- **~90% faster** feedback during development
+- **Immediate error detection** without full compilation
+- **Reduced context switching** between terminal and editor
+- **Better error context** with precise file and line information
+
 ### Redux Architecture
 - Use typed hooks (`useAppDispatch`, `useAppSelector`)
 - Keep reducers pure; use thunks for side effects

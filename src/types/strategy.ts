@@ -24,16 +24,14 @@ export interface StrategyRow {
 }
 
 export interface StrategyDecision {
-  playerHand: {
-    cards: string[];
-    value: number;
-    isSoft: boolean;
-    isPair: boolean;
-  };
-  dealerUpcard: number;
-  availableActions: string[];
+  action: StrategyAction;
   optimalAction: StrategyAction;
-  reasoning: string;
+  isCorrect: boolean;
+  explanation: string;
+  playerValue: number;
+  dealerUpcard: number;
+  handType: 'HARD' | 'SOFT' | 'PAIR';
+  timestamp: number;
 }
 
 export interface StrategyEvaluation {

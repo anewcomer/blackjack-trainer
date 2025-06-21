@@ -30,6 +30,7 @@ import {
     determineHandOutcome,
     determineGameResult
 } from '../utils/gameLogic';
+import { getOptimalAction, evaluateDecision } from '../utils/strategyEngine';
 import { ActionType } from '../types/game';
 
 // Start a new game: shuffle, deal, update state
@@ -80,7 +81,7 @@ export const startNewHand = () => (dispatch: AppDispatch, getState: () => RootSt
     dispatch(setGamePhase('PLAYER_TURN'));
 };
 
-// Player action thunk (hit, stand, double, split, surrender)
+// Player action thunk (hit, stand, double, split, surrender) with strategy evaluation
 export const playerAction = (action: ActionType) => (dispatch: AppDispatch, getState: () => RootState) => {
     const state = getState();
     const handIndex = state.game.currentHandIndex;
@@ -89,10 +90,23 @@ export const playerAction = (action: ActionType) => (dispatch: AppDispatch, getS
 
     if (!hand) return;
 
-    // Log the action (simplified for now - strategy integration needed later)
-    const handValueBefore = hand.handValue;
+    // Get optimal action and evaluate decision BEFORE making the move
+    const dealerUpCard = state.game.dealerHand.cards[0];
+    const availableActions = state.game.availableActions;
+    const optimalAction = getOptimalAction(hand, dealerUpCard, availableActions);
+    const strategyDecision = evaluateDecision(action, hand, dealerUpCard, availableActions);
 
-    // We'll update the log entry after the action is complete
+    // Log the strategy-aware action
+    dispatch(logAction({
+        handId: hand.id,
+        action,
+        optimalAction,
+        wasCorrect: strategyDecision.isCorrect,
+        handValueBefore: hand.handValue,
+        handValueAfter: hand.handValue, // Will be updated after action
+        cardDealt: null, // Will be updated if card is dealt
+        timestamp: Date.now(),
+    }));
 
     switch (action) {
         case 'HIT': {
@@ -119,18 +133,6 @@ export const playerAction = (action: ActionType) => (dispatch: AppDispatch, getS
                     dealerIsSoft: dealerHandValue.isSoft,
                 }));
 
-                // Log the action
-                dispatch(logAction({
-                    handId: hand.id,
-                    action,
-                    optimalAction: action, // TODO: Get from strategy engine
-                    wasCorrect: true, // TODO: Calculate from strategy engine
-                    handValueBefore,
-                    handValueAfter: playerHandValue.value,
-                    cardDealt: cards[0],
-                    timestamp: Date.now(),
-                }));
-
                 // Check if busted or if player should continue
                 if (isBusted(updatedHand.cards)) {
                     // Move to next hand or dealer turn
@@ -150,19 +152,6 @@ export const playerAction = (action: ActionType) => (dispatch: AppDispatch, getS
         }
         case 'STAND': {
             dispatch(playerStand({ handIndex }));
-
-            // Log the action
-            dispatch(logAction({
-                handId: hand.id,
-                action,
-                optimalAction: action, // TODO: Get from strategy engine
-                wasCorrect: true, // TODO: Calculate from strategy engine
-                handValueBefore,
-                handValueAfter: handValueBefore, // No change for stand
-                cardDealt: null,
-                timestamp: Date.now(),
-            }));
-
             dispatch(checkForNextPhase());
             break;
         }
@@ -190,18 +179,6 @@ export const playerAction = (action: ActionType) => (dispatch: AppDispatch, getS
                     dealerIsSoft: dealerHandValue.isSoft,
                 }));
 
-                // Log the action
-                dispatch(logAction({
-                    handId: hand.id,
-                    action,
-                    optimalAction: action, // TODO: Get from strategy engine
-                    wasCorrect: true, // TODO: Calculate from strategy engine
-                    handValueBefore,
-                    handValueAfter: playerHandValue.value,
-                    cardDealt: cards[0],
-                    timestamp: Date.now(),
-                }));
-
                 // Double always ends the hand
                 dispatch(checkForNextPhase());
             }
@@ -213,19 +190,6 @@ export const playerAction = (action: ActionType) => (dispatch: AppDispatch, getS
         }
         case 'SURRENDER': {
             dispatch(playerSurrender({ handIndex }));
-
-            // Log the action
-            dispatch(logAction({
-                handId: hand.id,
-                action,
-                optimalAction: action, // TODO: Get from strategy engine
-                wasCorrect: true, // TODO: Calculate from strategy engine
-                handValueBefore,
-                handValueAfter: handValueBefore, // No change for surrender
-                cardDealt: null,
-                timestamp: Date.now(),
-            }));
-
             dispatch(checkForNextPhase());
             break;
         }
