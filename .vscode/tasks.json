@@ -18,7 +18,7 @@
     {
       "label": "Run Tests",
       "type": "shell",
-      "command": "npm test",
+      "command": "npm test --watchAll=false",
       "group": "test",
       "presentation": {
         "echo": true,
