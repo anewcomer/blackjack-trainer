@@ -1,6 +1,6 @@
 // Card utility functions for the Blackjack Trainer
 
-import { Card, Suit, Rank } from '../types/game';
+import { Card } from '../types/game';
 import { SUITS, RANKS, RANK_VALUES } from './constants';
 
 /**
@@ -8,7 +8,7 @@ import { SUITS, RANKS, RANK_VALUES } from './constants';
  */
 export function createDeck(): Card[] {
   const deck: Card[] = [];
-  
+
   for (const suit of SUITS) {
     for (const rank of RANKS) {
       deck.push({
@@ -19,7 +19,7 @@ export function createDeck(): Card[] {
       });
     }
   }
-  
+
   return deck;
 }
 
@@ -28,7 +28,7 @@ export function createDeck(): Card[] {
  */
 export function createMultiDeck(numDecks: number = 1): Card[] {
   const multiDeck: Card[] = [];
-  
+
   for (let i = 0; i < numDecks; i++) {
     const deck = createDeck();
     // Add deck number to card IDs to ensure uniqueness
@@ -37,7 +37,7 @@ export function createMultiDeck(numDecks: number = 1): Card[] {
     });
     multiDeck.push(...deck);
   }
-  
+
   return shuffleDeck(multiDeck);
 }
 
@@ -46,12 +46,12 @@ export function createMultiDeck(numDecks: number = 1): Card[] {
  */
 export function shuffleDeck(deck: Card[]): Card[] {
   const shuffled = [...deck];
-  
+
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-  
+
   return shuffled;
 }
 
@@ -62,7 +62,7 @@ export function dealCard(deck: Card[]): { card: Card | null; remainingDeck: Card
   if (deck.length === 0) {
     return { card: null, remainingDeck: deck };
   }
-  
+
   const [card, ...remainingDeck] = deck;
   return { card, remainingDeck };
 }
@@ -73,7 +73,7 @@ export function dealCard(deck: Card[]): { card: Card | null; remainingDeck: Card
 export function dealCards(deck: Card[], count: number): { cards: Card[]; remainingDeck: Card[] } {
   const cards: Card[] = [];
   let remainingDeck = [...deck];
-  
+
   for (let i = 0; i < count && remainingDeck.length > 0; i++) {
     const result = dealCard(remainingDeck);
     if (result.card) {
@@ -81,7 +81,7 @@ export function dealCards(deck: Card[], count: number): { cards: Card[]; remaini
       remainingDeck = result.remainingDeck;
     }
   }
-  
+
   return { cards, remainingDeck };
 }
 
@@ -92,7 +92,7 @@ export function dealCards(deck: Card[], count: number): { cards: Card[]; remaini
 export function calculateHandValue(cards: Card[]): { value: number; isSoft: boolean } {
   let value = 0;
   let aces = 0;
-  
+
   // First pass: count non-Aces and count Aces
   for (const card of cards) {
     if (card.rank === 'A') {
@@ -102,16 +102,16 @@ export function calculateHandValue(cards: Card[]): { value: number; isSoft: bool
       value += card.value;
     }
   }
-  
+
   // Convert Aces from 11 to 1 if needed to avoid busting
   while (value > 21 && aces > 0) {
     value -= 10; // Convert one Ace from 11 to 1
     aces--;
   }
-  
+
   // Hand is "soft" if it contains an Ace counted as 11
   const isSoft = aces > 0 && value <= 21;
-  
+
   return { value, isSoft };
 }
 
@@ -120,10 +120,10 @@ export function calculateHandValue(cards: Card[]): { value: number; isSoft: bool
  */
 export function isBlackjack(cards: Card[]): boolean {
   if (cards.length !== 2) return false;
-  
+
   const hasAce = cards.some(card => card.rank === 'A');
   const hasTen = cards.some(card => card.value === 10);
-  
+
   return hasAce && hasTen;
 }
 
@@ -179,11 +179,11 @@ export function getHardValue(cards: Card[]): number {
  */
 export function formatHandValue(cards: Card[]): string {
   if (isBlackjack(cards)) return 'Blackjack!';
-  
+
   const { value, isSoft } = calculateHandValue(cards);
-  
+
   if (value > 21) return `Bust (${value})`;
-  
+
   const prefix = isSoft ? 'Soft' : 'Hard';
   return `${prefix} ${value}`;
 }

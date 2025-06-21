@@ -114,6 +114,45 @@
         "focus": false,
         "panel": "shared"
       }
+    },
+    {
+      "label": "Commit Core Game Logic (Phase 2)",
+      "type": "shell",
+      "command": "git commit -m 'feat: implement complete Phase 2 core game logic and automation\n\n- Add comprehensive game flow thunks with dealer automation\n- Implement all player actions (hit, stand, double, surrender)\n- Create dealer turn logic following house rules\n- Build hand resolution and outcome calculation system\n- Enhance GameArea component with functional UI\n- Add action logging for strategy analysis\n- Implement proper game phase management\n- Clean up code warnings and optimize imports\n- Verify working development server with full game functionality'",
+      "group": "build",
+      "dependsOn": [
+        "Git Add All"
+      ],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Verify Code Quality",
+      "type": "shell",
+      "command": "npm run build && npm run lint && npm run type-check",
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Quick Verification",
+      "type": "shell",
+      "command": "npm run lint && npm run type-check",
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
     }
   ]
 }

@@ -1,11 +1,11 @@
 // Core game logic for the Blackjack Trainer application
 
-import { 
-  Card, 
-  PlayerHand, 
-  DealerHand, 
-  ActionType, 
-  HandOutcome, 
+import {
+  Card,
+  PlayerHand,
+  DealerHand,
+  ActionType,
+  HandOutcome,
   GameResult,
   ActionLogEntry,
 } from '../types/game';
@@ -17,7 +17,7 @@ import {
   dealCard,
   createMultiDeck,
 } from './cardUtils';
-import { GAME_CONFIG, HAND_OUTCOMES } from './constants';
+import { GAME_CONFIG } from './constants';
 
 /**
  * Creates a new player hand
@@ -29,7 +29,7 @@ export function createPlayerHand(
 ): PlayerHand {
   const handId = id || `hand-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   const { value, isSoft } = calculateHandValue(cards);
-  
+
   return {
     id: handId,
     cards,
@@ -51,7 +51,7 @@ export function createPlayerHand(
  */
 export function createDealerHand(cards: Card[] = [], hideHoleCard: boolean = true): DealerHand {
   const { value, isSoft } = calculateHandValue(cards);
-  
+
   return {
     cards,
     handValue: value,
@@ -66,7 +66,7 @@ export function createDealerHand(cards: Card[] = [], hideHoleCard: boolean = tru
 export function updatePlayerHand(hand: PlayerHand, newCards?: Card[]): PlayerHand {
   const cards = newCards || hand.cards;
   const { value, isSoft } = calculateHandValue(cards);
-  
+
   return {
     ...hand,
     cards,
@@ -83,7 +83,7 @@ export function updatePlayerHand(hand: PlayerHand, newCards?: Card[]): PlayerHan
 export function updateDealerHand(hand: DealerHand, newCards?: Card[], hideHoleCard?: boolean): DealerHand {
   const cards = newCards || hand.cards;
   const { value, isSoft } = calculateHandValue(cards);
-  
+
   return {
     ...hand,
     cards,
@@ -103,22 +103,22 @@ export function getValidActions(
   canAffordDouble: boolean = true
 ): ActionType[] {
   const actions: ActionType[] = [];
-  
+
   // Can't take any actions if hand is finished
   if (hand.busted || hand.stood || hand.isBlackjack || hand.surrendered) {
     return actions;
   }
-  
+
   // Always can hit or stand (unless doubled)
   if (!hand.doubled) {
     actions.push('HIT', 'STAND');
   }
-  
+
   // Can double on first two cards if affordable
   if (hand.cards.length === 2 && !hand.doubled && canAffordDouble) {
     actions.push('DOUBLE');
   }
-  
+
   // Can split pairs if conditions are met
   if (
     hand.cards.length === 2 &&
@@ -128,7 +128,7 @@ export function getValidActions(
   ) {
     actions.push('SPLIT');
   }
-  
+
   // Can surrender on first action of hand
   if (
     GAME_CONFIG.SURRENDER_ALLOWED &&
@@ -138,7 +138,7 @@ export function getValidActions(
   ) {
     actions.push('SURRENDER');
   }
-  
+
   return actions;
 }
 
@@ -161,9 +161,9 @@ export function processPlayerAction(
     handValueAfter: hand.handValue,
     cardDealt: newCard || null,
   };
-  
+
   let updatedHand = { ...hand };
-  
+
   switch (action) {
     case 'HIT':
       if (newCard) {
@@ -171,11 +171,11 @@ export function processPlayerAction(
         actionLog.handValueAfter = updatedHand.handValue;
       }
       break;
-      
+
     case 'STAND':
       updatedHand.stood = true;
       break;
-      
+
     case 'DOUBLE':
       if (newCard) {
         updatedHand = updatePlayerHand(hand, [...hand.cards, newCard]);
@@ -184,21 +184,21 @@ export function processPlayerAction(
         actionLog.handValueAfter = updatedHand.handValue;
       }
       break;
-      
+
     case 'SURRENDER':
       updatedHand.surrendered = true;
       updatedHand.outcome = 'SURRENDER';
       break;
-      
+
     case 'SPLIT':
       // Note: Split logic is handled at the game level
       // This just logs the action
       break;
   }
-  
+
   // Add action to log
   updatedHand.actionLog = [...hand.actionLog, actionLog];
-  
+
   return { updatedHand, actionLog };
 }
 
@@ -207,16 +207,16 @@ export function processPlayerAction(
  */
 export function shouldDealerHit(dealerHand: DealerHand): boolean {
   const { value, isSoft } = calculateHandValue(dealerHand.cards);
-  
+
   if (value < GAME_CONFIG.DEALER_STANDS_ON) {
     return true;
   }
-  
+
   // Dealer hits soft 17 if rule is enabled
   if (value === 17 && isSoft && GAME_CONFIG.DEALER_HITS_SOFT_17) {
     return true;
   }
-  
+
   return false;
 }
 
@@ -230,20 +230,20 @@ export function determineHandOutcome(
   // Handle special cases first
   if (playerHand.surrendered) return 'SURRENDER';
   if (playerHand.busted) return 'LOSS'; // Bust is a loss
-  
+
   const playerValue = playerHand.handValue;
   const dealerValue = dealerHand.handValue;
   const playerBlackjack = playerHand.isBlackjack;
   const dealerBlackjack = isBlackjack(dealerHand.cards);
-  
+
   // Blackjack comparisons
   if (playerBlackjack && dealerBlackjack) return 'PUSH';
   if (playerBlackjack && !dealerBlackjack) return 'BLACKJACK';
   if (!playerBlackjack && dealerBlackjack) return 'LOSS';
-  
+
   // Dealer busted
   if (isBusted(dealerHand.cards)) return 'WIN';
-  
+
   // Standard value comparison
   if (playerValue > dealerValue) return 'WIN';
   if (playerValue < dealerValue) return 'LOSS';
@@ -272,14 +272,14 @@ export function determineGameResult(
   dealerHand: DealerHand
 ): GameResult {
   const outcomes = playerHands.map(hand => determineHandOutcome(hand, dealerHand));
-  
+
   let wins = 0;
   let losses = 0;
   let pushes = 0;
   let surrenders = 0;
   let blackjacks = 0;
   let busts = 0;
-  
+
   outcomes.forEach(outcome => {
     switch (outcome) {
       case 'WIN':
@@ -302,7 +302,7 @@ export function determineGameResult(
         break;
     }
   });
-  
+
   return {
     playerHandsCount: playerHands.length,
     wins,
@@ -323,20 +323,20 @@ export function initializeNewGame(): {
   dealerHand: DealerHand;
 } {
   let deck = createMultiDeck(GAME_CONFIG.NUMBER_OF_DECKS);
-  
+
   // Deal initial cards: player first, dealer first, player second, dealer second (hole card)
   const { card: playerCard1, remainingDeck: deck1 } = dealCard(deck);
   const { card: dealerCard1, remainingDeck: deck2 } = dealCard(deck1);
   const { card: playerCard2, remainingDeck: deck3 } = dealCard(deck2);
   const { card: dealerCard2, remainingDeck: finalDeck } = dealCard(deck3);
-  
+
   if (!playerCard1 || !playerCard2 || !dealerCard1 || !dealerCard2) {
     throw new Error('Not enough cards to deal initial hand');
   }
-  
+
   const playerHand = createPlayerHand([playerCard1, playerCard2]);
   const dealerHand = createDealerHand([dealerCard1, dealerCard2]);
-  
+
   return {
     deck: finalDeck,
     playerHand,
@@ -366,10 +366,10 @@ export function createSplitHand(originalHand: PlayerHand, splitCard: Card): Play
  * Checks if all player hands are finished (stood, busted, blackjack, or surrendered)
  */
 export function areAllHandsFinished(hands: PlayerHand[]): boolean {
-  return hands.every(hand => 
-    hand.stood || 
-    hand.busted || 
-    hand.isBlackjack || 
+  return hands.every(hand =>
+    hand.stood ||
+    hand.busted ||
+    hand.isBlackjack ||
     hand.surrendered
   );
 }
