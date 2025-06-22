@@ -64,20 +64,20 @@ export const asyncOperation = () => (dispatch: AppDispatch, getState: () => Root
 
 ### Development Environment Integration
 
-#### VSCode Task Integration Strategy
-**Problem Pattern**: Initial attempts to use development environment tasks for workflow automation may fail.
+#### Terminal Command Integration Strategy
+**Problem Pattern**: Relying too heavily on IDE-specific task systems can lead to portability issues.
 
 **Universal Lessons**:
-- Development environment task systems may not be available in all environments
-- Always have fallback methods for critical operations
-- Use tasks for discrete verification operations but not for long-running processes
-- Prefer build verification over live development servers for automated validation
+- Terminal commands work consistently across all development environments
+- Direct commands provide better visibility and control for development workflows
+- Scripts in package.json ensure consistent command execution
+- Prefer direct commands for critical operations with GitHub Copilot
 
 **Solution Pattern**:
-- Create specific tasks for discrete operations (build, lint, type-check)
-- Use task dependencies to chain operations
-- Avoid background tasks for verification workflows
-- Document when to use different approaches
+- Create specific npm scripts for discrete operations (build, lint, type-check)
+- Chain commands with && for sequential operations
+- Use direct terminal commands for verification workflows
+- Document standard command patterns for the project
 
 #### Development Server vs. Verification Strategy
 **Problem Pattern**: Long-running development server processes don't complete naturally and can interfere with automated workflows.
@@ -91,7 +91,7 @@ export const asyncOperation = () => (dispatch: AppDispatch, getState: () => Root
 **Solution Pattern**:
 - Manual testing: `npm start` or equivalent
 - Automated verification: `npm run build && npm run lint && npm run type-check`
-- Use environment tasks for repeatable verification workflows
+- Use terminal commands and npm scripts for repeatable verification workflows
 
 ### Library and Framework Adaptation
 

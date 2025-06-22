@@ -65,8 +65,7 @@ blackjack-trainer/
 │   ├── App.tsx              # Main application component
 │   ├── index.tsx            # Application entry point
 │   └── index.css            # Global styles
-├── .vscode/
-│   └── tasks.json           # VSCode task configuration
+<!-- Directory structure removed .vscode folder reference -->
 ├── package.json             # Dependencies and scripts
 ├── tsconfig.json            # TypeScript configuration
 ├── .gitignore               # Git ignore rules
@@ -356,10 +355,10 @@ interface SessionStatsProps {
    - Implement game slice with basic actions
    - Set up Redux DevTools integration
 
-3. **VSCode Task Configuration**
-   - Create tasks for build, test, lint, deploy
-   - Configure development server task
-   - Set up type checking task
+3. **NPM Script Configuration**
+   - Configure build, test, lint, and deploy scripts in package.json
+   - Set up development server scripts
+   - Configure type checking commands
 
 4. **Basic Project Structure**
    - Create directory structure as outlined
@@ -369,7 +368,7 @@ interface SessionStatsProps {
 **Deliverables**:
 - Fully configured React + TypeScript + Redux project
 - Working development server
-- VSCode tasks for common operations
+- NPM scripts for common operations
 - Basic store structure with placeholder actions
 
 ### Phase 2: Core Game Logic (Days 3-5)

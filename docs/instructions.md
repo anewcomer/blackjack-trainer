@@ -18,23 +18,22 @@ Before starting any code implementation:
    - Testing strategy for complex state interactions
    - Build and deployment configuration
 
-### VSCode Task Integration (Preferred)
-For commonly needed development activities, create VSCode tasks that can be executed without user intervention:
+### Terminal Command Usage (Preferred)
+For commonly needed development activities, use terminal commands for direct control and immediate feedback:
 
-**Preferred Task Creation Strategy**:
-- **Build Tasks**: Automated build processes that can run without approval
-- **Test Tasks**: Unit test execution, linting, type checking
-- **Development Tasks**: Start dev server, watch mode compilation
-- **Deployment Tasks**: Build and deploy to GitHub Pages
-- **Validation Tasks**: Run accessibility checks, performance audits
+**Preferred Terminal Command Strategy**:
+- **Build Commands**: `npm run build` for production builds
+- **Test Commands**: `npm test`, `npm run lint`, `npm run type-check`
+- **Development Commands**: `npm start` for dev server, watch mode
+- **Deployment Commands**: Scripts for deployment to GitHub Pages
+- **Validation Commands**: Accessibility checks, performance audits
 
-**Terminal Commands**: Reserve for one-off operations, debugging, or complex scenarios requiring user interaction
-
-**Task Benefits**:
-- No user approval required for execution
-- Consistent development workflow
-- Easy integration with VS Code's task runner
-- Can be chained together for complex workflows
+**Benefits of Terminal Commands**:
+- Direct control and visibility of execution
+- Immediate feedback in the terminal
+- No configuration overhead
+- Better integration with GitHub Copilot
+- Consistent across all development environments
 
 ## Critical Implementation Notes
 
