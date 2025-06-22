@@ -4,9 +4,9 @@ This document lists known issues with the game, along with their status and any 
 
 ## Summary
 
-**Status**: All 4 issues resolved ✅  
+**Status**: All 6 issues resolved ✅  
 **Date**: June 22, 2025  
-**Latest Fix**: Strategy guide scrolling layout problem resolved.
+**Latest Fix**: Title bar tweaks completed - End Session button converted to icon button, Session history placeholder removed.
 
 ## Completed Fixes 
 
@@ -93,3 +93,61 @@ Updated `coordinateCalculator.ts` to properly map hard totals 17 and above to th
 - ✅ StrategyGuide tests continue to pass
 - ✅ Strategy tables no longer have internal scrolling
 - ✅ Layout remains responsive across desktop, tablet, and mobile
+
+## Move Subtitle Functionality into Title and Remove Subtitle ✅ FIXED
+
+**Status**: RESOLVED  
+**Fix Applied**: June 22, 2025  
+
+~~I want to update the title by moving the Session Status and Progress indicator into the title bar (just after the game title), and moving the End Session button, Reset icon, and clock icon into the title on the right side (just before the game settings icon). This will allow us to remove the subtitle and have a cleaner title bar.~~
+
+**Solution**: 
+- **AppBar Integration**: Moved session status and progress indicators directly into the main AppBar after the "Blackjack Trainer" title
+- **Session Status Display**: Added Active/Ended status chip and clock icon with session duration in the title bar
+- **Progress Indicator**: Included hands played and decisions count as compact text in the title bar
+- **Action Buttons**: Moved End Session/New Session button, Reset icon, and History icon to the right side of the AppBar (before theme toggle)
+- **Responsive Design**: Session controls hidden on mobile (moved to mobile drawer), full display on desktop/tablet
+- **Removed Subtitle**: Completely removed the SessionControls component and its separate container for a cleaner layout
+- **Mobile Integration**: Added session controls to the mobile analytics drawer for consistent functionality
+
+**Layout Changes**:
+- **Desktop**: Title | Session Status + Progress | Action Buttons | Theme Toggle | Strategy Button
+- **Mobile**: Session controls integrated into the bottom drawer with analytics
+- **Removed**: Separate SessionControls component and its dedicated space below the header
+
+**Result**: The title bar now contains all session information and controls in a consolidated, professional layout. The separate subtitle area has been eliminated, providing more screen real estate for the main game content.
+
+**Verification**: 
+- ✅ All 147 tests continue to pass
+- ✅ Build successful with no compilation errors  
+- ✅ Desktop layout shows integrated session controls in title bar
+- ✅ Mobile layout preserves functionality in analytics drawer
+- ✅ Responsive design maintains usability across all screen sizes
+
+## Title Bar Tweaks ✅ FIXED
+
+**Status**: RESOLVED  
+**Fix Applied**: June 22, 2025  
+
+~~Make the "End Session" button into an icon button like the "Reset all data" button.~~
+
+~~Also remove the "Session history" placeholder button.~~
+
+**Solution**: 
+- **End Session Button**: Converted from text button with outline styling to clean icon button with tooltip
+- **New Session Button**: Similarly converted to icon button with PlayArrow icon and tooltip 
+- **Removed Session History**: Eliminated the disabled placeholder "Session history" button entirely
+- **Consistent Styling**: All session action buttons now use consistent icon button styling with rgba colors
+- **Cleaner Layout**: Reduced visual noise in the title bar with more compact icon-based controls
+
+**Before**: `[End Session]` `[Reset]` `[History (disabled)]`  
+**After**: `[Stop Icon]` `[Reset Icon]` 
+
+**Result**: The title bar now has a cleaner, more professional appearance with consistent icon buttons for all session actions. The removal of the placeholder history button eliminates visual clutter while maintaining full functionality.
+
+**Verification**: 
+- ✅ All 147 tests continue to pass
+- ✅ Build successful with no warnings or errors
+- ✅ End Session and New Session buttons work as icon buttons with tooltips
+- ✅ Session history placeholder button successfully removed
+- ✅ Consistent visual styling across all title bar controls
