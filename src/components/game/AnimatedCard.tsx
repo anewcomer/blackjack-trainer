@@ -67,7 +67,7 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
                         ...cardSize,
                         backgroundColor: hidden ? '#1a5490' : '#ffffff',
                         border: '2px solid #000000',
-                        borderRadius: 2,
+                        borderRadius: 1, // Reduced from 2 to 1 for flatter, more traditional card look
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',

@@ -114,8 +114,8 @@ const GameLayout: React.FC = () => {
               PaperProps={{
                 sx: {
                   height: '70vh',
-                  borderTopLeftRadius: 16,
-                  borderTopRightRadius: 16,
+                  borderTopLeftRadius: 4, // Reduced from 16 to 4 for flatter look
+                  borderTopRightRadius: 4, // Reduced from 16 to 4 for flatter look
                 }
               }}
             >

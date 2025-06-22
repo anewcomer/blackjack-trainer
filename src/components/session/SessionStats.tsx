@@ -79,7 +79,7 @@ export const SessionStats: React.FC = () => {
                                 <LinearProgress
                                     variant="determinate"
                                     value={currentSession.accuracy}
-                                    sx={{ height: 8, borderRadius: 4 }}
+                                    sx={{ height: 8, borderRadius: 1 }} // Reduced from 4 to 1 for flatter look
                                     color={currentSession.accuracy >= 85 ? 'success' : currentSession.accuracy >= 70 ? 'warning' : 'error'}
                                 />
                             </Box>
@@ -135,7 +135,7 @@ export const SessionStats: React.FC = () => {
                                 <LinearProgress
                                     variant="determinate"
                                     value={parseFloat(winRate)}
-                                    sx={{ height: 8, borderRadius: 4 }}
+                                    sx={{ height: 8, borderRadius: 1 }} // Reduced from 4 to 1 for flatter look
                                     color={parseFloat(winRate) >= 45 ? 'success' : parseFloat(winRate) >= 40 ? 'warning' : 'error'}
                                 />
                             </Box>

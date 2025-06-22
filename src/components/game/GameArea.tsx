@@ -297,7 +297,7 @@ const GameArea: React.FC = () => {
 
           {/* Show game results when game is over */}
           {gameState.gamePhase === 'GAME_OVER' && gameState.gameResult && (
-            <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 2 }}>
+            <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
               <Typography variant="h6" gutterBottom>
                 Game Results
               </Typography>

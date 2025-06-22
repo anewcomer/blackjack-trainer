@@ -146,7 +146,7 @@ export const createBlackjackTheme = (isDarkMode: boolean = false) => {
     },
     spacing: 8,
     shape: {
-      borderRadius: 8,
+      borderRadius: 2, // Reduced from 8 to 2 for flatter look
     },
     breakpoints: {
       values: {
@@ -175,7 +175,7 @@ export const createBlackjackTheme = (isDarkMode: boolean = false) => {
       MuiButton: {
         styleOverrides: {
           root: {
-            borderRadius: 8,
+            borderRadius: 2, // Reduced from 8 to 2 for flatter look
             padding: '8px 16px',
             fontSize: '1rem',
             fontWeight: 600,
@@ -201,6 +201,33 @@ export const createBlackjackTheme = (isDarkMode: boolean = false) => {
             '&:hover': {
               borderWidth: 2,
             },
+          },
+        },
+      },
+
+      // Floating Action Button styling
+      MuiFab: {
+        styleOverrides: {
+          root: {
+            borderRadius: 4, // Reduced rounded corners for flatter look (FABs can be slightly more rounded than buttons)
+          },
+        },
+      },
+
+      // Drawer styling
+      MuiDrawer: {
+        styleOverrides: {
+          paper: {
+            borderRadius: 0, // No rounded corners for drawers for cleaner look
+          },
+        },
+      },
+
+      // Dialog/Modal styling
+      MuiDialog: {
+        styleOverrides: {
+          paper: {
+            borderRadius: 2, // Minimal rounded corners for dialogs
           },
         },
       },
@@ -243,7 +270,7 @@ export const createBlackjackTheme = (isDarkMode: boolean = false) => {
         styleOverrides: {
           root: {
             '& .MuiSnackbarContent-root': {
-              borderRadius: 8,
+              borderRadius: 2, // Reduced from 8 to 2 for flatter look
               fontWeight: 500,
             },
           },
