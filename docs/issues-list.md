@@ -17,9 +17,22 @@ This document lists known issues with the game, along with their status and any 
 
 The rotated rank and suit symbols in the bottom-right corner now stay properly contained within the card boundaries.
 
-## Action row button overflow
+## Action row button overflow ✅ FIXED
 
-The spacing of the action buttons is too wide. The right most button -- "Surrender" -- wraps to a new row. All buttons should fit on a single row.
+**Status**: RESOLVED  
+**Fix Applied**: June 22, 2025  
+
+~~The spacing of the action buttons is too wide. The right most button -- "Surrender" -- wraps to a new row. All buttons should fit on a single row.~~
+
+**Solution**: 
+- Reduced button spacing from `spacing={2}` to `spacing={1}` in the Stack component
+- Added `gap: 1` in sx styles for consistent spacing
+- Changed button size from `size="large"` to `size="medium"` to make them more compact
+- Added `minWidth: 80` to all buttons for consistent sizing
+- Added responsive design: `flexWrap: 'nowrap'` on screens ≥640px to prevent wrapping on desktop
+- Maintained `flexWrap="wrap"` for smaller screens to ensure usability on mobile devices
+
+All five action buttons (Hit, Stand, Double, Split, Surrender) now fit comfortably on a single row on desktop and tablet screens, while still being responsive for mobile devices.
 
 ## Best strategy highlight bug
 

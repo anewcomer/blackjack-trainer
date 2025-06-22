@@ -225,65 +225,78 @@ const GameArea: React.FC = () => {
 
         {/* Action Buttons */}
         <Stack
-          spacing={2}
+          spacing={1}
           direction="row"
           justifyContent="center"
           flexWrap="wrap"
           role="group"
           aria-label="Blackjack game actions"
+          sx={{
+            // Ensure buttons fit on one row by using tighter spacing
+            gap: 1,
+            // On smaller screens, allow wrapping but prefer single row
+            '@media (min-width: 640px)': {
+              flexWrap: 'nowrap',
+            },
+          }}
         >
           <Button
             variant="contained"
             color="error"
-            size="large"
+            size="medium"
             onClick={() => handlePlayerAction('HIT')}
             disabled={!canPlay}
             aria-label="Hit - Take another card"
             tabIndex={canPlay ? 0 : -1}
+            sx={{ minWidth: 80 }}
           >
             Hit
           </Button>
           <Button
             variant="contained"
             color="success"
-            size="large"
+            size="medium"
             onClick={() => handlePlayerAction('STAND')}
             disabled={!canPlay}
             aria-label="Stand - Keep current hand"
             tabIndex={canPlay ? 0 : -1}
+            sx={{ minWidth: 80 }}
           >
             Stand
           </Button>
           <Button
             variant="contained"
             color="info"
-            size="large"
+            size="medium"
             onClick={() => handlePlayerAction('DOUBLE')}
             disabled={!canPlay || currentPlayerHand?.cards.length !== 2}
             aria-label="Double Down - Double bet and take one card"
             tabIndex={canPlay && currentPlayerHand?.cards.length === 2 ? 0 : -1}
+            sx={{ minWidth: 80 }}
           >
             Double
           </Button>
           <Button
             variant="contained"
             color="secondary"
-            size="large"
+            size="medium"
             onClick={() => handlePlayerAction('SPLIT')}
             disabled={!canPlay || !gameState.availableActions.includes('SPLIT')}
             aria-label="Split - Separate matching cards into two hands"
             tabIndex={canPlay && gameState.availableActions.includes('SPLIT') ? 0 : -1}
+            sx={{ minWidth: 80 }}
           >
             Split
           </Button>
           <Button
             variant="contained"
             color="warning"
-            size="large"
+            size="medium"
             onClick={() => handlePlayerAction('SURRENDER')}
             disabled={!canPlay || currentPlayerHand?.cards.length !== 2}
             aria-label="Surrender - Give up hand for half bet back"
             tabIndex={canPlay && currentPlayerHand?.cards.length === 2 ? 0 : -1}
+            sx={{ minWidth: 80 }}
           >
             Surrender
           </Button>
