@@ -125,7 +125,7 @@ const GameHistory: React.FC = () => {
     );
 
     return (
-        <Box>
+        <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 2, bgcolor: 'background.paper' }}>
             {/* Header */}
             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
                 <Stack direction="row" alignItems="center" spacing={1}>
@@ -144,7 +144,7 @@ const GameHistory: React.FC = () => {
                             <ClearIcon />
                         </IconButton>
                     </Tooltip>
-                    <Button variant="outlined" onClick={() => setModalOpen(true)}>
+                    <Button variant="outlined" onClick={() => setModalOpen(true)} disabled={gameHistory.length === 0}>
                         View Details
                     </Button>
                 </Stack>

@@ -36,12 +36,14 @@ export function getStrategyCellCoordinates(
             return { table: 'SOFT', row: softValue - 2, col: dealerIndex };
         }
     } else {
-        // Hard hands table (8 to 21)
+        // Hard hands table (1 to 21)
         const hardValue = playerHand.handValue;
-        if (hardValue >= 8 && hardValue <= 21) {
+        if (hardValue >= 1 && hardValue <= 21) {
             // Map hard values to chart rows:
-            // 8 -> row 0, 9 -> row 1, ..., 16 -> row 8, 17+ -> row 9
-            const rowIndex = hardValue >= 17 ? 9 : hardValue - 8;
+            // 8 or less -> row 0, 9 -> row 1, ..., 16 -> row 8, 17+ -> row 9
+            const rowIndex = hardValue >= 17 ? 9 :
+                hardValue <= 8 ? 0 :
+                    hardValue - 8;
             return { table: 'HARD', row: rowIndex, col: dealerIndex };
         }
     }

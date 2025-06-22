@@ -14,13 +14,13 @@ The reorganization improves the overall layout by:
 2. Creating a more balanced visual distribution of components
 3. Better utilizing horizontal space on wider screens
 
-## Stategy Guide Highlight Bug: Hard 8 or Less
+## ✅ **RESOLVED**: Strategy Guide Highlight Bug: Hard 8 or Less
 
-During testing, the player had hard 6, but there was no correct strategy highlighted. This is likely due to the pertinent row having title "8 or less", so start looking there.
+During testing, the player had hard 6, but there was no correct strategy highlighted. This was due to the highlighting function not properly mapping values below 8 to the "8 or less" row. This has been fixed by updating the coordinate calculator to properly handle all hand values from 1-8.
 
-## Game History Styling: Stands Out Too Much
+## ✅ **RESOLVED**: Game History Styling: Stands Out Too Much
 
-The Game history area (the fifth card of the primary play area) stands out too much because it does not look like the styling of the play areas (no border, no background color, etc.). It should be styled to match the other play areas.
+The Game History area has been updated with styling to match other play areas, including border, background color, and consistent styling.
 
-Also, the "View Details" button should not be enabled if there is no game history to view. This can be done by checking if the game history is empty and disabling the button accordingly.
+The "View Details" button is now disabled when there is no game history to view.
 
