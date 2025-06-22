@@ -78,6 +78,8 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
                         boxShadow: theme.shadows[3],
                         transition: 'all 0.3s ease-in-out',
                         transform: isNew ? 'scale(1.1)' : 'scale(1)',
+                        // Ensure content stays within card bounds
+                        overflow: 'hidden',
                         '&:hover': {
                             boxShadow: theme.shadows[6],
                             transform: 'scale(1.05)',
@@ -134,6 +136,13 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
                                 color: getSuitColor(card.suit),
                                 transform: 'rotate(180deg)',
                                 lineHeight: 1,
+                                // Ensure rotated text stays within card bounds
+                                marginRight: '2px',
+                                marginBottom: '2px',
+                                // Prevent overflow by containing the rotated element
+                                overflow: 'hidden',
+                                // Adjust positioning to account for rotation
+                                transformOrigin: 'center center',
                             }}>
                                 <Typography
                                     variant={size === 'small' ? 'caption' : 'body2'}
