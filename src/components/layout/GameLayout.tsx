@@ -322,59 +322,75 @@ const GameLayout: React.FC = () => {
             </Fab>
           </Stack>
         ) : (
-          // Desktop/Tablet Layout: Three columns
-          <Stack
-            direction={{ xs: 'column', lg: 'row' }}
-            spacing={3}
-            sx={{
-              width: '100%',
-              maxWidth: { sm: '100%', md: '1200px' },
-              mx: 'auto'
-            }}
-          >
-            {/* Game Area - Left Side */}
-            <Box sx={{ flex: { xs: 1, lg: 2 } }}>
-              <Paper
-                elevation={3}
-                sx={{
-                  p: 3,
-                  minHeight: '600px',
-                  background: theme => theme.palette.blackjack?.table || 'green',
-                  color: 'white',
-                }}
-              >
-                <GameArea />
-              </Paper>
-            </Box>
-
-            {/* Strategy Guide - Center (Hidden in drawer on tablet) */}
-            {isTablet ? (
-              <Drawer
-                anchor="right"
-                open={strategyDrawerOpen}
-                onClose={handleStrategyToggle}
-                PaperProps={{
-                  sx: { width: '400px', p: 2 }
-                }}
-              >
-                <StrategyGuide />
-              </Drawer>
-            ) : (
-              <Box sx={{ flex: 1 }}>
-                <Paper elevation={2} sx={{ p: 2, minHeight: '600px' }}>
-                  <StrategyGuide />
+          // Desktop/Tablet Layout: Two rows layout
+          <Stack spacing={3} sx={{
+            width: '100%',
+            maxWidth: { sm: '100%', md: '1200px' },
+            mx: 'auto'
+          }}>
+            {/* First row: Game Area and Strategy Guide */}
+            <Stack
+              direction={{ xs: 'column', lg: 'row' }}
+              spacing={3}
+              sx={{ width: '100%' }}
+            >
+              {/* Game Area - Left Side */}
+              <Box sx={{ flex: { xs: 1, lg: 3 } }}>
+                <Paper
+                  elevation={3}
+                  sx={{
+                    p: 3,
+                    minHeight: '600px',
+                    background: theme => theme.palette.blackjack?.table || 'green',
+                    color: 'white',
+                  }}
+                >
+                  <GameArea />
                 </Paper>
               </Box>
-            )}
 
-            {/* Session Analytics - Right Side */}
-            <Box sx={{ flex: 1, minWidth: { lg: '350px' } }}>
-              <Stack spacing={3}>
+              {/* Strategy Guide - Right Side (Hidden in drawer on tablet) */}
+              {isTablet ? (
+                <Drawer
+                  anchor="right"
+                  open={strategyDrawerOpen}
+                  onClose={handleStrategyToggle}
+                  PaperProps={{
+                    sx: { width: '400px', p: 2 }
+                  }}
+                >
+                  <StrategyGuide />
+                </Drawer>
+              ) : (
+                <Box sx={{ flex: 2 }}>
+                  <Paper elevation={2} sx={{ p: 2, minHeight: '600px' }}>
+                    <StrategyGuide />
+                  </Paper>
+                </Box>
+              )}
+            </Stack>
+
+            {/* Second row: Session Analytics, Mistake Patterns, and Game History */}
+            <Stack
+              direction={{ xs: 'column', md: 'row' }}
+              spacing={3}
+              sx={{ width: '100%' }}
+            >
+              {/* Session Stats */}
+              <Box sx={{ flex: 1 }}>
                 <SessionStats />
+              </Box>
+
+              {/* Mistake Patterns */}
+              <Box sx={{ flex: 1 }}>
                 <MistakePatterns />
+              </Box>
+
+              {/* Game History */}
+              <Box sx={{ flex: 1 }}>
                 <GameHistory />
-              </Stack>
-            </Box>
+              </Box>
+            </Stack>
           </Stack>
         )}
       </Box>
