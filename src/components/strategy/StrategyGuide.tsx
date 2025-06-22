@@ -79,7 +79,7 @@ const StrategyGuide: React.FC = () => {
   };
 
   return (
-    <Box>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Typography variant="h5" gutterBottom>
         Basic Strategy Guide
       </Typography>
@@ -129,25 +129,27 @@ const StrategyGuide: React.FC = () => {
         </Stack>
       </Paper>
 
-      {/* Strategy Tables */}
-      {tabValue === 0 && (
-        <StrategyTable
-          chart={HARD_TOTALS_CHART}
-          highlightCell={getCurrentHighlight()}
-        />
-      )}
-      {tabValue === 1 && (
-        <StrategyTable
-          chart={SOFT_TOTALS_CHART}
-          highlightCell={getCurrentHighlight()}
-        />
-      )}
-      {tabValue === 2 && (
-        <StrategyTable
-          chart={PAIRS_CHART}
-          highlightCell={getCurrentHighlight()}
-        />
-      )}
+      {/* Strategy Tables Container - Flexible height */}
+      <Box sx={{ flex: 1, minHeight: 0 }}>
+        {tabValue === 0 && (
+          <StrategyTable
+            chart={HARD_TOTALS_CHART}
+            highlightCell={getCurrentHighlight()}
+          />
+        )}
+        {tabValue === 1 && (
+          <StrategyTable
+            chart={SOFT_TOTALS_CHART}
+            highlightCell={getCurrentHighlight()}
+          />
+        )}
+        {tabValue === 2 && (
+          <StrategyTable
+            chart={PAIRS_CHART}
+            highlightCell={getCurrentHighlight()}
+          />
+        )}
+      </Box>
 
       <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
         {gameState.gamePhase === 'PLAYER_TURN' && currentHand

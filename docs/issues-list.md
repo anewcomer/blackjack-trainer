@@ -4,9 +4,9 @@ This document lists known issues with the game, along with their status and any 
 
 ## Summary
 
-**All Known Issues Resolved ✅**  
+**Status**: All 4 issues resolved ✅  
 **Date**: June 22, 2025  
-**Status**: All 3 identified issues have been successfully fixed and verified.
+**Latest Fix**: Strategy guide scrolling layout problem resolved.
 
 ## Completed Fixes 
 
@@ -73,6 +73,23 @@ Updated `coordinateCalculator.ts` to properly map hard totals 17 and above to th
 - Edge cases and boundary conditions
 - The specific bug scenario as a labeled regression test
 
-## Strategy Guid Content Height Scrolling Bug
+## Strategy Guide Content Height Scrolling Bug ✅ FIXED
 
-An issue exists where the strategy guide content requires scrolling -- the rows
+**Status**: RESOLVED  
+**Fix Applied**: June 22, 2025  
+
+~~An issue exists where the strategy guide content requires scrolling -- the title row is correctly fixed at the top, but the content below it should not be scrollable. Instead, the entire strategy guide should be fixed height.~~
+
+**Root Cause**: The `StrategyTable` component had `maxHeight: 400, overflow: 'auto'` which forced the strategy tables to scroll within a fixed 400px container, even when the parent container had sufficient space.
+
+**Solution**: 
+- **StrategyTable.tsx**: Removed `maxHeight: 400, overflow: 'auto'` constraint and replaced with `height: 'auto'` to allow natural table sizing
+- **StrategyGuide.tsx**: Improved layout structure with flexbox (`display: 'flex', flexDirection: 'column'`) and flexible table container (`flex: 1, minHeight: 0`) 
+- The tables now fill the available space within the parent container without creating unnecessary scrollbars
+
+**Result**: The strategy guide now properly uses the full height of its container (600px on desktop) without internal scrolling. Tables display all rows naturally, and the entire guide fits within the designated layout space.
+
+**Verification**: 
+- ✅ StrategyGuide tests continue to pass
+- ✅ Strategy tables no longer have internal scrolling
+- ✅ Layout remains responsive across desktop, tablet, and mobile

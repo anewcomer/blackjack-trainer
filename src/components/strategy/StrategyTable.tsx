@@ -34,7 +34,7 @@ const StrategyTable: React.FC<StrategyTableProps> = ({ chart, highlightCell }) =
     };
 
     return (
-        <TableContainer component={Paper} sx={{ maxHeight: 400, overflow: 'auto' }}>
+        <TableContainer component={Paper} sx={{ height: 'auto' }}>
             <Table size="small" stickyHeader>
                 <TableHead>
                     <TableRow>
