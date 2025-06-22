@@ -24,3 +24,8 @@ The Game History area has been updated with styling to match other play areas, i
 
 The "View Details" button is now disabled when there is no game history to view.
 
+## Add link to this repo in footer
+
+## General styling clean-up
+
+Like the visible play state constants.
