@@ -14,8 +14,7 @@ The reorganization improves the overall layout by:
 2. Creating a more balanced visual distribution of components
 3. Better utilizing horizontal space on wider screens
 
-
-## Stategy Guy Highlight Bug: Hard 8 or Less
+## Stategy Guide Highlight Bug: Hard 8 or Less
 
 During testing, the player had hard 6, but there was no correct strategy highlighted. This is likely due to the pertinent row having title "8 or less", so start looking there.
 
