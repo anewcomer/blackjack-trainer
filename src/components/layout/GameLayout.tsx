@@ -192,7 +192,7 @@ const GameLayout: React.FC = () => {
       </AppBar>
 
       {/* Main Content Area - Responsive Layout */}
-      <Box sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
+      <Box sx={{ px: { xs: 1, sm: 2, md: 3 }, mt: 3, maxWidth: "100%", mx: "auto" }}>
         {isMobile ? (
           // Mobile Layout: Stack vertically with tabs/drawers
           <Stack spacing={2}>
@@ -326,7 +326,11 @@ const GameLayout: React.FC = () => {
           <Stack
             direction={{ xs: 'column', lg: 'row' }}
             spacing={3}
-            sx={{ width: '100%' }}
+            sx={{
+              width: '100%',
+              maxWidth: { sm: '100%', md: '1200px' },
+              mx: 'auto'
+            }}
           >
             {/* Game Area - Left Side */}
             <Box sx={{ flex: { xs: 1, lg: 2 } }}>
@@ -376,7 +380,13 @@ const GameLayout: React.FC = () => {
       </Box>
 
       {/* Game Status Footer */}
-      <Box sx={{ mt: 3, px: { xs: 1, sm: 2 } }}>
+      <Box sx={{
+        mt: 3,
+        px: { xs: 1, sm: 2, md: 3 },
+        maxWidth: { sm: '100%', md: '1200px' },
+        mx: 'auto',
+        mb: 3
+      }}>
         <Paper elevation={1} sx={{ p: 2 }}>
           <Typography variant="body2" color="text.secondary" align="center">
             Game Phase: {gamePhase || 'INITIAL'} |

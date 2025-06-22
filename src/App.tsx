@@ -10,7 +10,7 @@ function App() {
     <Provider store={store}>
       <AppThemeProvider>
         <CssBaseline />
-        <Container maxWidth="xl" sx={{ minHeight: '100vh', py: 2 }}>
+        <Container maxWidth="xl" sx={{ minHeight: '100vh', py: 0 }}>
           <GameLayout />
         </Container>
       </AppThemeProvider>

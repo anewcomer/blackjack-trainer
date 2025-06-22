@@ -4,4 +4,12 @@ This document lists known issues with the game, along with their status and any 
 
 ## Display Issues
 
-The primary display area (3 columns: play area, strategy guide, and session summary) extends to the right beyond the title and footer content making for an awkward appearance. Also, I would like for the primary display area to not be directly touching the title bar.
+The third column of the display area contains the following items:
+- Session Statistics
+- Mistake Patterns
+- Game History
+
+Instead, let's move the items into a second row below the row with the play area and the strategy guide area.
+
+In the case of a narrow or mobile display, all five items should stack in a single column.
+
